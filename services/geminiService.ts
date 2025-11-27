@@ -3,18 +3,31 @@ import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 
 let ai: GoogleGenAI | null = null;
 
+// Safe accessor for API Key that prevents ReferenceError in browsers
+const getApiKey = (): string | undefined => {
+  try {
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.env) {
+      // @ts-ignore
+      return process.env.API_KEY;
+    }
+  } catch (e) {
+    // Ignore ReferenceError: process is not defined
+    return undefined;
+  }
+  return undefined;
+};
+
 const getAiClient = (): GoogleGenAI | null => {
   if (ai) return ai;
   
-  // Safe check for process.env to prevent crashes in browsers where process is undefined
-  try {
-    // @ts-ignore
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-      // @ts-ignore
-      ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const key = getApiKey();
+  if (key) {
+    try {
+      ai = new GoogleGenAI({ apiKey: key });
+    } catch (e) {
+      console.warn("Failed to initialize GoogleGenAI client", e);
     }
-  } catch (e) {
-    console.warn("Environment check failed during AI initialization", e);
   }
   return ai;
 };
@@ -23,12 +36,17 @@ export const createOracleChat = (): Chat | null => {
   const client = getAiClient();
   if (!client) return null;
 
-  return client.chats.create({
-    model: 'gemini-2.5-flash',
-    config: {
-      systemInstruction: 'You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone. Keep answers brief. Do not output internal thought traces or reasoning steps.',
-    },
-  });
+  try {
+    return client.chats.create({
+      model: 'gemini-2.5-flash',
+      config: {
+        systemInstruction: 'You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone. Keep answers brief. Do not output internal thought traces or reasoning steps.',
+      },
+    });
+  } catch (e) {
+    console.error("Failed to create chat session", e);
+    return null;
+  }
 };
 
 export const sendMessageToOracle = async (chat: Chat, message: string): Promise<string> => {

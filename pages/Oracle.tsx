@@ -18,23 +18,35 @@ export const Oracle: React.FC = () => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [chatSession, setChatSession] = useState<Chat | null>(null);
-  const [apiKeyAvailable, setApiKeyAvailable] = useState(false);
+  const [apiKeyAvailable, setApiKeyAvailable] = useState(true); // Default to true, check later
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Safely check for API Key existence without crashing if process is undefined
-    let hasKey = false;
-    try {
+    // Safe check that won't crash the browser
+    const checkEnv = () => {
+      try {
         // @ts-ignore
-        hasKey = typeof process !== 'undefined' && process.env && !!process.env.API_KEY;
-    } catch (e) {
-        hasKey = false;
-    }
+        const hasKey = typeof process !== 'undefined' && process.env && !!process.env.API_KEY;
+        return hasKey;
+      } catch (e) {
+        return false;
+      }
+    };
+
+    const hasKey = checkEnv();
     setApiKeyAvailable(hasKey);
 
     if (hasKey) {
-      const chat = createOracleChat();
-      if (chat) setChatSession(chat);
+      try {
+        const chat = createOracleChat();
+        if (chat) {
+            setChatSession(chat);
+        } else {
+            console.warn("Oracle chat initialization returned null despite API key presence.");
+        }
+      } catch (e) {
+          console.error("Critical failure initializing Oracle:", e);
+      }
     }
   }, []);
 
@@ -61,12 +73,14 @@ export const Oracle: React.FC = () => {
 
   if (!apiKeyAvailable) {
       return (
-          <div className="w-full h-full flex items-center justify-center p-8 text-center">
-              <div className="border-4 border-white p-12 max-w-xl">
-                  <AlertTriangle className="w-20 h-20 mx-auto mb-8" />
+          <div className="w-full h-full flex items-center justify-center p-8 text-center pt-24">
+              <div className="border-4 border-white p-12 max-w-xl bg-black/20 backdrop-blur-sm">
+                  <AlertTriangle className="w-20 h-20 mx-auto mb-8 text-yellow-400" />
                   <h2 className="text-3xl font-bold uppercase mb-4">System Offline</h2>
-                  <p className="text-lg opacity-80 mb-6">Oracle module requires a valid API Key configuration in the environment variables.</p>
-                  <div className="inline-block border px-4 py-2 font-mono text-sm">process.env.API_KEY missing</div>
+                  <p className="text-lg opacity-80 mb-6 font-light">Oracle module requires a secure API Key configuration.</p>
+                  <div className="inline-block border border-white/30 px-4 py-2 font-mono text-sm bg-black/40">
+                      process.env.API_KEY unavailable
+                  </div>
               </div>
           </div>
       )
