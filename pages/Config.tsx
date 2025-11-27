@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, AlertCircle, RefreshCw, Eye, EyeOff, Key, ExternalLink } from 'lucide-react';
+import { Download, Save, Lock, AlertCircle, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle } from 'lucide-react';
 import { UserData, Theme } from '../types';
 
 interface ConfigProps {
@@ -19,6 +19,7 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
   const [apiKeyInput, setApiKeyInput] = useState('');
   
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
     setCurrentPin(localStorage.getItem('blue_pin') || '1969');
@@ -30,7 +31,16 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
 
   const handleDownload = () => {
     const notes = JSON.parse(localStorage.getItem('blue_notes') || '[]');
-    const tasks = JSON.parse(localStorage.getItem('blue_tasks') || '[]');
+    // Handle both new task lists and legacy tasks
+    const taskLists = JSON.parse(localStorage.getItem('blue_task_lists') || '[]');
+    if (taskLists.length === 0) {
+        // Fallback check for legacy
+        const legacyTasks = JSON.parse(localStorage.getItem('blue_tasks') || '[]');
+        if (legacyTasks.length > 0) {
+            taskLists.push({ id: 'legacy', title: 'Restored Tasks', tasks: legacyTasks });
+        }
+    }
+
     const bookmarks = JSON.parse(localStorage.getItem('blue_uplinks') || '[]');
     const files = JSON.parse(localStorage.getItem('blue_files') || '[]');
     const pin = localStorage.getItem('blue_pin') || '1969';
@@ -38,12 +48,12 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
     const storedApiKey = localStorage.getItem('blue_api_key') || undefined;
 
     const data: UserData = {
-        version: '2.0',
+        version: '2.1',
         pin,
         theme,
         apiKey: storedApiKey,
         notes,
-        tasks,
+        taskLists,
         bookmarks,
         files
     };
@@ -91,6 +101,11 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
       onThemeChange(newTheme);
   };
 
+  const executeFactoryReset = () => {
+      localStorage.clear();
+      window.location.reload();
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0 }} 
@@ -103,7 +118,7 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
         <p className="text-sm md:text-base uppercase tracking-widest opacity-70">System Diagnostics & Data Management</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-24">
         
         {/* VISUAL INTERFACE */}
         <section className="border-4 border-white p-8 relative overflow-hidden flex flex-col justify-between">
@@ -237,6 +252,50 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
                     <Save size={18} />
                     Export System File
                 </button>
+            </div>
+        </section>
+
+        {/* FACTORY RESET */}
+        <section className="border-4 border-red-500 bg-red-900/10 p-8 md:col-span-2 mt-8">
+            <div className="flex items-start justify-between flex-col md:flex-row gap-8">
+                <div>
+                    <div className="flex items-center gap-4 mb-4 text-red-500">
+                        <AlertTriangle size={32} />
+                        <h2 className="text-2xl font-bold uppercase tracking-widest">Factory Reset</h2>
+                    </div>
+                    <p className="opacity-80 leading-relaxed font-light max-w-xl text-red-100">
+                        DANGER: This will permanently wipe all local data including PIN, notes, tasks, files, and API keys. 
+                        The application will return to its initial boot state. This action cannot be undone.
+                    </p>
+                </div>
+
+                {!showResetConfirm ? (
+                    <button 
+                        onClick={() => setShowResetConfirm(true)}
+                        className="shrink-0 border-2 border-red-500 text-red-500 px-8 py-4 font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all flex items-center gap-3"
+                    >
+                        <Trash2 size={18} />
+                        Initiate Purge
+                    </button>
+                ) : (
+                    <div className="flex flex-col items-end gap-3 animate-pulse">
+                        <div className="text-red-300 font-bold uppercase tracking-widest text-sm">Are you sure?</div>
+                        <div className="flex gap-4">
+                            <button 
+                                onClick={executeFactoryReset}
+                                className="bg-red-500 text-white px-6 py-3 font-bold uppercase tracking-wider hover:bg-red-600 transition-all"
+                            >
+                                Confirm Wipe
+                            </button>
+                            <button 
+                                onClick={() => setShowResetConfirm(false)}
+                                className="border-2 border-white text-white px-6 py-3 font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-all"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </section>
         

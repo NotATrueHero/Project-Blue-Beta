@@ -12,6 +12,12 @@ export interface Task {
   completed: boolean;
 }
 
+export interface TaskList {
+  id: string;
+  title: string;
+  tasks: Task[];
+}
+
 export interface Bookmark {
   id: string;
   title: string;
@@ -45,7 +51,7 @@ export interface UserData {
   theme: Theme;
   apiKey?: string;
   notes: Note[];
-  tasks: Task[];
+  taskLists: TaskList[];
   bookmarks: Bookmark[];
   files: FileItem[];
 }

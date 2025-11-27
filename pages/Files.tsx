@@ -90,7 +90,10 @@ export const Files: React.FC = () => {
   };
 
   const removeFile = (e: React.MouseEvent | null, id: string) => {
-      if (e) e.stopPropagation();
+      if (e) {
+          e.stopPropagation();
+          e.preventDefault();
+      }
       if (selectedFile?.id === id) setSelectedFile(null);
       saveFiles(files.filter(f => f.id !== id));
   };

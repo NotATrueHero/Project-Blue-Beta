@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Power, AlertTriangle, FileJson } from 'lucide-react';
-import { UserData, Theme } from '../types';
+import { UserData, Theme, TaskList } from '../types';
 
 interface BootLoaderProps {
   onLoadComplete: (pin: string, requiresAuth: boolean, theme?: Theme) => void;
@@ -19,16 +19,30 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
     reader.onload = (event) => {
       try {
         const json = event.target?.result as string;
-        const data: UserData = JSON.parse(json);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data: any = JSON.parse(json);
 
         if (!data.version || !data.notes) {
           throw new Error("Corrupt or invalid system file.");
         }
 
+        // Handle Migration of Tasks to TaskLists if needed
+        let taskLists: TaskList[] = [];
+        if (data.taskLists) {
+            taskLists = data.taskLists;
+        } else if (data.tasks) {
+            // Legacy support
+            taskLists = [{
+                id: 'default-legacy',
+                title: 'General Operations',
+                tasks: data.tasks
+            }];
+        }
+
         // Seed LocalStorage
         localStorage.setItem('blue_pin', data.pin);
         localStorage.setItem('blue_notes', JSON.stringify(data.notes));
-        localStorage.setItem('blue_tasks', JSON.stringify(data.tasks));
+        localStorage.setItem('blue_task_lists', JSON.stringify(taskLists));
         localStorage.setItem('blue_uplinks', JSON.stringify(data.bookmarks));
         localStorage.setItem('blue_files', JSON.stringify(data.files || []));
         localStorage.setItem('blue_theme', data.theme || 'standard');
@@ -56,7 +70,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
   const handleNewSession = () => {
     // Wipe Storage
     localStorage.removeItem('blue_notes');
-    localStorage.removeItem('blue_tasks');
+    localStorage.removeItem('blue_task_lists');
+    localStorage.removeItem('blue_tasks'); // cleanup legacy
     localStorage.removeItem('blue_uplinks');
     localStorage.removeItem('blue_files');
     localStorage.removeItem('blue_theme');
