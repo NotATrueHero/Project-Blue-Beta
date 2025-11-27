@@ -6,11 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface LockScreenProps {
   onUnlock: () => void;
   targetPin: string;
+  onReset?: () => void;
 }
 
 const PIN_LENGTH = 4;
 
-export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, targetPin }) => {
+export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, targetPin, onReset }) => {
   const [pin, setPin] = useState<string>("");
   const [error, setError] = useState<boolean>(false);
   const [isExiting, setIsExiting] = useState<boolean>(false);
@@ -99,6 +100,15 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, targetPin }) =
             >
                 Access Denied
             </motion.div>
+          )}
+
+          {onReset && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onReset(); }}
+                className="absolute bottom-10 text-xs font-bold uppercase tracking-[0.2em] opacity-30 hover:opacity-100 transition-opacity"
+              >
+                  System Reboot
+              </button>
           )}
         </motion.div>
       )}

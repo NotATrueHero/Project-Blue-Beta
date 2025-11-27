@@ -1,6 +1,6 @@
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BootLoader } from './components/BootLoader';
 import { LockScreen } from './components/LockScreen';
 import { Layout, useLocation } from './components/Layout';
@@ -19,10 +19,27 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<Theme>('standard');
   const { pathname } = useLocation();
 
+  useEffect(() => {
+    // Check local storage for existing session
+    const cachedPin = localStorage.getItem('blue_pin');
+    const cachedTheme = localStorage.getItem('blue_theme') as Theme;
+    
+    if (cachedPin) {
+      setSessionPin(cachedPin);
+      if (cachedTheme) setTheme(cachedTheme);
+      // If data exists, bypass bootloader and go straight to lock screen
+      setBootStatus('locked');
+    }
+  }, []);
+
   const handleBootComplete = (pin: string, requiresAuth: boolean, loadedTheme?: Theme) => {
     setSessionPin(pin);
     if (loadedTheme) setTheme(loadedTheme);
     setBootStatus(requiresAuth ? 'locked' : 'unlocked');
+  };
+
+  const handleSystemReset = () => {
+    setBootStatus('booting');
   };
 
   const updateTheme = (newTheme: Theme) => {
@@ -35,7 +52,7 @@ const App: React.FC = () => {
   }
 
   if (bootStatus === 'locked') {
-    return <LockScreen targetPin={sessionPin} onUnlock={() => setBootStatus('unlocked')} />;
+    return <LockScreen targetPin={sessionPin} onUnlock={() => setBootStatus('unlocked')} onReset={handleSystemReset} />;
   }
 
   let content;
