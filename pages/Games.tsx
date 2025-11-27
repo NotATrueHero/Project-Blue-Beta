@@ -418,7 +418,10 @@ const FlappyGame: React.FC = () => {
              <canvas 
                 ref={canvasRef} 
                 width={400} height={300} 
-                onClick={jump}
+                onPointerDown={(e) => {
+                    e.preventDefault();
+                    jump();
+                }}
                 className="border-4 border-white bg-black/40 cursor-pointer touch-none"
              />
              <div className="mt-4 text-xs opacity-50 uppercase tracking-widest">Tap / Click to Fly</div>
@@ -524,7 +527,10 @@ const PlatformGame: React.FC = () => {
             <canvas 
                 ref={canvasRef} 
                 width={400} height={250} 
-                onClick={jump}
+                onPointerDown={(e) => {
+                    e.preventDefault();
+                    jump();
+                }}
                 className="border-4 border-white bg-black/40 cursor-pointer touch-none"
              />
              <div className="mt-4 text-xs opacity-50 uppercase tracking-widest">Tap to Jump</div>
