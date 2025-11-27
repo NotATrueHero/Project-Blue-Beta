@@ -1,13 +1,13 @@
 
-import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-
-let ai: GoogleGenAI | null = null;
+import { GoogleGenerativeAI, ChatSession } from "@google/generative-ai";
 
 // Safe accessor for API Key that prevents ReferenceError in browsers
 const getApiKey = (): string | undefined => {
   try {
     // Check if process exists safely (Node.js/Webpack envs)
+    // @ts-ignore
     if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      // @ts-ignore
       return process.env.API_KEY;
     }
   } catch (e) {
@@ -16,30 +16,23 @@ const getApiKey = (): string | undefined => {
   return undefined;
 };
 
-const getAiClient = (): GoogleGenAI | null => {
-  if (ai) return ai;
-  
+export const createOracleChat = (): ChatSession | null => {
   const key = getApiKey();
-  if (key) {
-    try {
-      ai = new GoogleGenAI({ apiKey: key });
-    } catch (e) {
-      console.warn("Failed to initialize GoogleGenAI client", e);
-    }
-  }
-  return ai;
-};
-
-export const createOracleChat = (): Chat | null => {
-  const client = getAiClient();
-  if (!client) return null;
+  if (!key) return null;
 
   try {
-    return client.chats.create({
-      model: 'gemini-2.5-flash',
-      config: {
+    const genAI = new GoogleGenerativeAI(key);
+    // Using gemini-1.5-flash as it is the most stable model for this SDK version
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
         systemInstruction: 'You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone. Keep answers brief. Do not output internal thought traces or reasoning steps.',
-      },
+    });
+    
+    return model.startChat({
+        history: [],
+        generationConfig: {
+            maxOutputTokens: 1000,
+        }
     });
   } catch (e) {
     console.error("Failed to create chat session", e);
@@ -47,10 +40,11 @@ export const createOracleChat = (): Chat | null => {
   }
 };
 
-export const sendMessageToOracle = async (chat: Chat, message: string): Promise<string> => {
+export const sendMessageToOracle = async (chat: ChatSession, message: string): Promise<string> => {
   try {
-    const response: GenerateContentResponse = await chat.sendMessage({ message });
-    return response.text || "System Error: No text response received.";
+    const result = await chat.sendMessage(message);
+    const response = await result.response;
+    return response.text();
   } catch (error) {
     console.error("Oracle Connection Failure:", error);
     return "Connection Lost. Secure channel unavailable.";
