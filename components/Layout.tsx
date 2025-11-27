@@ -2,8 +2,8 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
-import { Theme } from '../types';
+import { ArrowLeft, Play, Pause, LayoutGrid, List } from 'lucide-react';
+import { Theme, ViewMode } from '../types';
 
 // Custom Router Implementation
 export const useLocation = () => {
@@ -34,9 +34,23 @@ export const Link: React.FC<{to: string; children: React.ReactNode; className?: 
 interface LayoutProps {
   children: React.ReactNode;
   theme: Theme;
+  isPlaying: boolean;
+  onTogglePlay: () => void;
+  // New props for View Toggle interaction
+  showViewToggle?: boolean;
+  viewMode?: ViewMode;
+  onToggleView?: () => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, theme }) => {
+export const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  theme, 
+  isPlaying, 
+  onTogglePlay,
+  showViewToggle,
+  viewMode,
+  onToggleView
+}) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const isHome = pathname === '/';
@@ -50,9 +64,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme }) => {
       {/* Global Header / Nav */}
       <div className="fixed top-0 left-0 w-full z-40 p-6 md:p-8 flex justify-between items-start pointer-events-none">
         
-        {/* Left Side: Container for Back Button & System Status */}
+        {/* Left Side: Back Button & System Status */}
         <div className="pointer-events-auto flex items-center">
-            
             <AnimatePresence>
                 {!isHome && (
                     <motion.button 
@@ -81,6 +94,56 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme }) => {
                 </div>
             </motion.div>
         </div>
+
+        {/* Right Side: Music & View Toggle */}
+        <div className="pointer-events-auto flex items-center gap-4">
+            {/* Music Visualizer / Toggle */}
+            <motion.button 
+                layout
+                onClick={onTogglePlay}
+                className={`group flex items-center gap-3 backdrop-blur-sm py-2 px-3 rounded-lg border border-white/10 hover:bg-white/10 transition-colors ${accentClass}`}
+            >
+                <div className="flex items-center gap-1 h-4 w-8 justify-center">
+                    {isPlaying ? (
+                        <>
+                            {[1, 2, 3, 4].map((i) => (
+                                <motion.div 
+                                    key={i}
+                                    animate={{ height: ['20%', '100%', '20%'] }}
+                                    transition={{ 
+                                        duration: 0.5 + Math.random() * 0.5, 
+                                        repeat: Infinity, 
+                                        ease: "easeInOut",
+                                        delay: i * 0.1 
+                                    }}
+                                    className="w-1 bg-white"
+                                />
+                            ))}
+                        </>
+                    ) : (
+                         <div className="w-full h-[2px] bg-white/30" />
+                    )}
+                </div>
+                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+            </motion.button>
+
+            {/* View Toggle (Grid/List) */}
+            <AnimatePresence>
+                {showViewToggle && onToggleView && viewMode && (
+                    <motion.button
+                        initial={{ opacity: 0, width: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, width: 'auto', scale: 1 }}
+                        exit={{ opacity: 0, width: 0, scale: 0.8 }}
+                        onClick={onToggleView}
+                        className={`flex items-center gap-2 backdrop-blur-sm border border-white/20 hover:bg-white hover:text-black hover:border-white px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors whitespace-nowrap overflow-hidden ${accentClass}`}
+                    >
+                        {viewMode === ViewMode.LIST ? <LayoutGrid size={16} /> : <List size={16} />}
+                        <span className="hidden md:inline">Mode: {viewMode === ViewMode.LIST ? 'Grid' : 'List'}</span>
+                    </motion.button>
+                )}
+            </AnimatePresence>
+        </div>
+
       </div>
 
       <div className="w-full h-full relative z-0">

@@ -3,14 +3,20 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Save, Lock, AlertCircle, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle } from 'lucide-react';
-import { UserData, Theme } from '../types';
+import { UserData, Theme, MusicPlaylist, LoopMode, BookmarkCategory, Bookmark } from '../types';
 
 interface ConfigProps {
     currentTheme: Theme;
     onThemeChange: (t: Theme) => void;
+    musicPlaylists: MusicPlaylist[];
+    audioState: {
+        volume: number;
+        loopMode: LoopMode;
+        shuffle: boolean;
+    };
 }
 
-export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) => {
+export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange, musicPlaylists, audioState }) => {
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -23,7 +29,6 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
 
   useEffect(() => {
     setCurrentPin(localStorage.getItem('blue_pin') || '1969');
-    
     const storedKey = localStorage.getItem('blue_api_key') || '';
     setApiKey(storedKey);
     setApiKeyInput(storedKey);
@@ -31,30 +36,48 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
 
   const handleDownload = () => {
     const notes = JSON.parse(localStorage.getItem('blue_notes') || '[]');
-    // Handle both new task lists and legacy tasks
+    const noteFolders = JSON.parse(localStorage.getItem('blue_note_folders') || '[]');
     const taskLists = JSON.parse(localStorage.getItem('blue_task_lists') || '[]');
+    
+    // Legacy migration for tasks
     if (taskLists.length === 0) {
-        // Fallback check for legacy
         const legacyTasks = JSON.parse(localStorage.getItem('blue_tasks') || '[]');
         if (legacyTasks.length > 0) {
             taskLists.push({ id: 'legacy', title: 'Restored Tasks', tasks: legacyTasks });
         }
     }
 
-    const bookmarks = JSON.parse(localStorage.getItem('blue_uplinks') || '[]');
+    // Bookmarks Migration Logic
+    let bookmarkCategories = JSON.parse(localStorage.getItem('blue_uplink_categories') || '[]');
+    if (bookmarkCategories.length === 0) {
+        const legacyBookmarks = JSON.parse(localStorage.getItem('blue_uplinks') || '[]');
+        if (legacyBookmarks.length > 0) {
+            bookmarkCategories = [{
+                id: 'legacy-export',
+                title: 'Restored Links',
+                bookmarks: legacyBookmarks
+            }];
+        }
+    }
+
     const files = JSON.parse(localStorage.getItem('blue_files') || '[]');
     const pin = localStorage.getItem('blue_pin') || '1969';
     const theme = (localStorage.getItem('blue_theme') as Theme) || 'standard';
     const storedApiKey = localStorage.getItem('blue_api_key') || undefined;
 
     const data: UserData = {
-        version: '2.1',
+        version: '2.3',
         pin,
         theme,
         apiKey: storedApiKey,
+        musicPlaylists,
+        volume: audioState.volume,
+        loopMode: audioState.loopMode,
+        shuffle: audioState.shuffle,
         notes,
+        noteFolders,
         taskLists,
-        bookmarks,
+        bookmarkCategories,
         files
     };
 
@@ -181,14 +204,14 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
         </section>
 
         {/* AI CONFIG */}
-        <section className="border-4 border-white p-8 md:col-span-2">
+        <section className="border-4 border-white p-8">
             <div className="flex items-center gap-4 mb-6">
                 <Key size={32} />
                 <h2 className="text-2xl font-bold uppercase tracking-widest">AI Core Config</h2>
             </div>
             
-            <p className="opacity-80 mb-6 leading-relaxed font-light">
-                Configure the connection to the Oracle (Gemini AI). A valid API key is required for the neural interface to function.
+            <p className="opacity-80 mb-6 leading-relaxed font-light text-sm">
+                Configure connection to Oracle (Gemini).
             </p>
 
             <form onSubmit={handleApiKeySave} className="space-y-6">
@@ -206,7 +229,7 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
                             type="submit"
                             className="shrink-0 border-2 border-white px-6 py-2 font-bold uppercase hover:bg-white hover:text-black transition-colors"
                         >
-                            Save Key
+                            Save
                         </button>
                     </div>
                 </div>
@@ -241,7 +264,7 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
                         <h2 className="text-2xl font-bold uppercase tracking-widest">System Backup</h2>
                     </div>
                     <p className="opacity-80 leading-relaxed font-light max-w-xl">
-                        Generate a full JSON dump of current system state, including logs, task directives, Uplink coordinates, AI Config, and Vault items.
+                        Generate a full JSON dump of current system state, including logs, task lists, Uplink coordinates, AI Config, Playlists, and Vault items.
                     </p>
                 </div>
                 
@@ -264,7 +287,7 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
                         <h2 className="text-2xl font-bold uppercase tracking-widest">Factory Reset</h2>
                     </div>
                     <p className="opacity-80 leading-relaxed font-light max-w-xl text-red-100">
-                        DANGER: This will permanently wipe all local data including PIN, notes, tasks, files, and API keys. 
+                        DANGER: This will permanently wipe all local data including PIN, notes, tasks, files, playlists, and API keys. 
                         The application will return to its initial boot state. This action cannot be undone.
                     </p>
                 </div>

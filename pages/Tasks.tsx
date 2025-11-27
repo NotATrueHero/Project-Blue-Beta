@@ -1,8 +1,8 @@
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Check, X, Layers, Trash2, Edit2 } from 'lucide-react';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { Plus, Check, X, Layers, Trash2, Edit2, GripVertical } from 'lucide-react';
 import { Task, TaskList } from '../types';
 
 export const Tasks: React.FC = () => {
@@ -95,18 +95,11 @@ export const Tasks: React.FC = () => {
 
   const deleteList = (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      // Prevent deleting the last list
-      if (lists.length <= 1) {
-          return;
-      }
-      
-      // Removed native confirm() as it can be blocked by some browsers/embeds
-      // Proceed with deletion immediately for utility speed
+      if (lists.length <= 1) return;
       
       const updated = lists.filter(l => l.id !== id);
       saveLists(updated);
       
-      // If we deleted the active list, switch to the first available one
       if (activeListId === id) {
           setActiveListId(updated[0].id);
       }
@@ -154,6 +147,17 @@ export const Tasks: React.FC = () => {
           if (list.id === activeListId) {
               const updatedTasks = list.tasks.filter(t => t.id !== taskId);
               return { ...list, tasks: updatedTasks };
+          }
+          return list;
+      });
+      saveLists(updatedLists);
+  };
+
+  const handleTaskReorder = (newOrder: Task[]) => {
+      if (!activeListId) return;
+      const updatedLists = lists.map(list => {
+          if (list.id === activeListId) {
+              return { ...list, tasks: newOrder };
           }
           return list;
       });
@@ -210,54 +214,65 @@ export const Tasks: React.FC = () => {
             )}
         </AnimatePresence>
         
-        <div className="flex-1 overflow-y-auto hide-scrollbar space-y-2">
-          {lists.map(list => (
-              <div 
-                key={list.id}
-                onClick={() => activeListId !== list.id && setActiveListId(list.id)}
-                className={`group flex items-center justify-between p-4 border-2 cursor-pointer transition-all ${activeListId === list.id ? 'bg-white text-blue-base border-white' : 'border-white/30 text-white hover:border-white'}`}
-              >
-                  {editingListId === list.id ? (
-                      <form onSubmit={submitRename} className="flex-1 mr-2" onClick={e => e.stopPropagation()}>
-                          <input 
-                              type="text"
-                              value={editListTitle}
-                              onChange={(e) => setEditListTitle(e.target.value)}
-                              autoFocus
-                              onBlur={() => submitRename()}
-                              className="w-full bg-transparent border-b border-current font-bold uppercase text-sm outline-none"
-                          />
-                      </form>
-                  ) : (
-                      <div>
-                          <div className="font-bold uppercase text-sm tracking-wider">{list.title}</div>
-                          <div className="text-[10px] opacity-60 font-mono mt-1">
-                              {list.tasks.filter(t => t.completed).length}/{list.tasks.length} COMPLETE
-                          </div>
-                      </div>
-                  )}
-                  
-                  <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity relative z-10">
-                      {editingListId !== list.id && (
-                          <button 
-                            onClick={(e) => startRename(e, list)}
-                            className={`p-1.5 transition-colors ${activeListId === list.id ? 'hover:text-blue-300' : 'hover:text-blue-300'}`}
-                          >
-                              <Edit2 size={14} />
-                          </button>
-                      )}
-                      
-                      {lists.length > 1 && (
-                          <button 
-                            onClick={(e) => deleteList(e, list.id)}
-                            className={`p-1.5 transition-colors ${activeListId === list.id ? 'hover:text-red-500' : 'hover:text-red-500'}`}
-                          >
-                              <Trash2 size={14} />
-                          </button>
-                      )}
-                  </div>
-              </div>
-          ))}
+        <div className="flex-1 overflow-y-auto hide-scrollbar">
+            <Reorder.Group axis="y" values={lists} onReorder={saveLists} className="space-y-2">
+                {lists.map(list => (
+                    <Reorder.Item 
+                        key={list.id} 
+                        value={list}
+                        className="relative"
+                    >
+                        <div 
+                            onClick={() => activeListId !== list.id && setActiveListId(list.id)}
+                            className={`group flex items-center justify-between p-4 border-2 cursor-pointer transition-all ${activeListId === list.id ? 'bg-white text-blue-base border-white' : 'border-white/30 text-white hover:border-white'}`}
+                        >
+                            <GripVertical className="opacity-20 group-hover:opacity-50 cursor-grab shrink-0 mr-3" size={14} />
+                            
+                            <div className="flex-1 min-w-0 flex justify-between items-center">
+                                {editingListId === list.id ? (
+                                    <form onSubmit={submitRename} className="flex-1 mr-2" onClick={e => e.stopPropagation()}>
+                                        <input 
+                                            type="text"
+                                            value={editListTitle}
+                                            onChange={(e) => setEditListTitle(e.target.value)}
+                                            autoFocus
+                                            onBlur={() => submitRename()}
+                                            className="w-full bg-transparent border-b border-current font-bold uppercase text-sm outline-none"
+                                        />
+                                    </form>
+                                ) : (
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-bold uppercase text-sm tracking-wider truncate">{list.title}</div>
+                                        <div className="text-[10px] opacity-60 font-mono mt-1">
+                                            {list.tasks.filter(t => t.completed).length}/{list.tasks.length} COMPLETE
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity relative z-10 shrink-0">
+                                    {editingListId !== list.id && (
+                                        <button 
+                                            onClick={(e) => startRename(e, list)}
+                                            className={`p-1.5 transition-colors ${activeListId === list.id ? 'hover:text-blue-300' : 'hover:text-blue-300'}`}
+                                        >
+                                            <Edit2 size={14} />
+                                        </button>
+                                    )}
+                                    
+                                    {lists.length > 1 && (
+                                        <button 
+                                            onClick={(e) => deleteList(e, list.id)}
+                                            className={`p-1.5 transition-colors ${activeListId === list.id ? 'hover:text-red-500' : 'hover:text-red-500'}`}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </Reorder.Item>
+                ))}
+            </Reorder.Group>
         </div>
       </div>
 
@@ -298,34 +313,37 @@ export const Tasks: React.FC = () => {
                 </form>
 
                 {/* List */}
-                <div className="flex-1 overflow-y-auto hide-scrollbar space-y-3 pb-12">
-                    <AnimatePresence>
+                <div className="flex-1 overflow-y-auto hide-scrollbar pb-12">
+                    <Reorder.Group axis="y" values={activeList.tasks} onReorder={handleTaskReorder} className="space-y-3">
                         {activeList.tasks.map(task => (
-                            <motion.div
-                                key={task.id}
+                            <Reorder.Item 
+                                key={task.id} 
+                                value={task}
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 10 }}
-                                className={`group flex items-center justify-between p-4 border border-white/50 hover:border-white transition-all ${task.completed ? 'opacity-50 bg-white/5' : 'opacity-100'}`}
                             >
-                                <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => toggleTask(task.id)}>
-                                    <div className={`w-6 h-6 border-2 border-white flex items-center justify-center transition-colors ${task.completed ? 'bg-white text-blue-base' : 'transparent'}`}>
-                                        {task.completed && <Check size={16} strokeWidth={4} />}
+                                <div className={`group flex items-center justify-between p-4 border border-white/50 hover:border-white transition-all ${task.completed ? 'opacity-50 bg-white/5' : 'opacity-100'}`}>
+                                    <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => toggleTask(task.id)}>
+                                        <GripVertical className="opacity-20 group-hover:opacity-50 cursor-grab shrink-0" size={16} />
+                                        <div className={`w-6 h-6 border-2 border-white flex items-center justify-center transition-colors shrink-0 ${task.completed ? 'bg-white text-blue-base' : 'transparent'}`}>
+                                            {task.completed && <Check size={16} strokeWidth={4} />}
+                                        </div>
+                                        <span className={`text-lg font-bold uppercase transition-all truncate ${task.completed ? 'line-through' : ''}`}>
+                                            {task.text}
+                                        </span>
                                     </div>
-                                    <span className={`text-lg font-bold uppercase transition-all ${task.completed ? 'line-through' : ''}`}>
-                                        {task.text}
-                                    </span>
+                                    
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); removeTask(task.id); }}
+                                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-2 text-red-300 hover:text-red-500 relative z-10 shrink-0"
+                                    >
+                                        <X size={20} />
+                                    </button>
                                 </div>
-                                
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); removeTask(task.id); }}
-                                    className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-2 text-red-300 hover:text-red-500 relative z-10"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </motion.div>
+                            </Reorder.Item>
                         ))}
-                    </AnimatePresence>
+                    </Reorder.Group>
                     
                     {activeList.tasks.length === 0 && (
                     <div className="text-center py-20 opacity-40 uppercase tracking-widest">

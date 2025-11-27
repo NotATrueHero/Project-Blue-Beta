@@ -2,11 +2,11 @@
 import * as React from 'react';
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Power, AlertTriangle, FileJson } from 'lucide-react';
-import { UserData, Theme, TaskList } from '../types';
+import { Upload, Power, AlertTriangle } from 'lucide-react';
+import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark } from '../types';
 
 interface BootLoaderProps {
-  onLoadComplete: (pin: string, requiresAuth: boolean, theme?: Theme) => void;
+  onLoadComplete: (pin: string, requiresAuth: boolean, theme?: Theme, playlists?: MusicPlaylist[]) => void;
 }
 
 export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
@@ -26,28 +26,59 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
           throw new Error("Corrupt or invalid system file.");
         }
 
-        // Handle Migration of Tasks to TaskLists if needed
+        // Handle Migration of Tasks
         let taskLists: TaskList[] = [];
         if (data.taskLists) {
             taskLists = data.taskLists;
         } else if (data.tasks) {
-            // Legacy support
-            taskLists = [{
-                id: 'default-legacy',
-                title: 'General Operations',
-                tasks: data.tasks
+            taskLists = [{ id: 'default-legacy', title: 'General Operations', tasks: data.tasks }];
+        }
+
+        // Handle Migration of Playlists
+        let musicPlaylists: MusicPlaylist[] = [];
+        if (data.musicPlaylists) {
+            musicPlaylists = data.musicPlaylists;
+        } else if (data.playlist) {
+            musicPlaylists = [{
+                id: 'default',
+                title: 'Default Frequency',
+                tracks: data.playlist as Track[]
+            }];
+        }
+
+        // Handle Migration of Bookmarks (Uplinks)
+        let bookmarkCategories: BookmarkCategory[] = [];
+        if (data.bookmarkCategories) {
+            bookmarkCategories = data.bookmarkCategories;
+        } else if (data.bookmarks) {
+            // Convert old flat list to Default Category
+            bookmarkCategories = [{
+                id: 'default-uplink',
+                title: 'General Links',
+                bookmarks: data.bookmarks as Bookmark[]
             }];
         }
 
         // Seed LocalStorage
         localStorage.setItem('blue_pin', data.pin);
         localStorage.setItem('blue_notes', JSON.stringify(data.notes));
+        localStorage.setItem('blue_note_folders', JSON.stringify(data.noteFolders || []));
         localStorage.setItem('blue_task_lists', JSON.stringify(taskLists));
-        localStorage.setItem('blue_uplinks', JSON.stringify(data.bookmarks));
+        localStorage.setItem('blue_uplink_categories', JSON.stringify(bookmarkCategories));
+        // Remove old key if exists to prevent confusion
+        localStorage.removeItem('blue_uplinks');
+        
         localStorage.setItem('blue_files', JSON.stringify(data.files || []));
         localStorage.setItem('blue_theme', data.theme || 'standard');
         
-        // Restore API Key if present
+        if (musicPlaylists.length > 0) {
+            localStorage.setItem('blue_music_playlists', JSON.stringify(musicPlaylists));
+        }
+
+        if (data.volume !== undefined) localStorage.setItem('blue_volume', String(data.volume));
+        if (data.loopMode) localStorage.setItem('blue_loop_mode', data.loopMode);
+        if (data.shuffle !== undefined) localStorage.setItem('blue_shuffle', String(data.shuffle));
+
         if (data.apiKey) {
             localStorage.setItem('blue_api_key', data.apiKey);
         } else {
@@ -56,7 +87,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
 
         // Boot
         setTimeout(() => {
-            onLoadComplete(data.pin, true, data.theme);
+            onLoadComplete(data.pin, true, data.theme, musicPlaylists);
         }, 800);
 
       } catch (err) {
@@ -69,13 +100,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
 
   const handleNewSession = () => {
     // Wipe Storage
-    localStorage.removeItem('blue_notes');
-    localStorage.removeItem('blue_task_lists');
-    localStorage.removeItem('blue_tasks'); // cleanup legacy
-    localStorage.removeItem('blue_uplinks');
-    localStorage.removeItem('blue_files');
-    localStorage.removeItem('blue_theme');
-    localStorage.removeItem('blue_api_key');
+    localStorage.clear();
     
     // Set Default PIN
     const defaultPin = "1969";
@@ -109,8 +134,6 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
-            {/* OPTION 1: LOAD PROFILE */}
             <div 
                 className={`border-4 border-white p-8 transition-all duration-300 cursor-pointer relative group ${isHovering ? 'bg-white text-[#0047FF]' : 'bg-transparent'}`}
                 onDragOver={(e) => { e.preventDefault(); setIsHovering(true); }}
@@ -144,7 +167,6 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
                 />
             </div>
 
-            {/* OPTION 2: NEW SESSION */}
             <button 
                 onClick={handleNewSession}
                 className="border-4 border-white p-8 transition-all duration-300 hover:bg-white hover:text-[#0047FF] group flex flex-col items-center text-center gap-4"
@@ -171,7 +193,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         )}
 
         <div className="mt-12 text-center text-xs opacity-40 uppercase tracking-[0.2em]">
-            Project Blue Beta // v2.1.0
+            Project Blue Beta // v2.3.0
         </div>
 
       </motion.div>

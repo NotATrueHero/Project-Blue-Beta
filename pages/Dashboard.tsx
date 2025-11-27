@@ -1,36 +1,37 @@
 
 import * as React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link } from '../components/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ViewMode, ToolItem } from '../types';
-import { LayoutGrid, List } from 'lucide-react';
 
 const tools: ToolItem[] = [
   { id: '4', number: '01 / Network', category: 'Web', title: 'Uplink', description: 'Stored coordinates for external network navigation and quick access.', path: '/uplink', imageText: 'NET BRIDGE' },
   { id: '1', number: '02 / System', category: 'Notes', title: 'Notes', description: 'Access classified logs, personal entries, and daily observations.', path: '/notes', imageText: 'NOTES UI' },
   { id: '2', number: '03 / System', category: 'Tasks', title: 'Tasks', description: 'Manage mission objectives and daily operations with real-time tracking.', path: '/tasks', imageText: 'TASK LOG' },
   { id: '3', number: '04 / AI', category: 'Oracle', title: 'Oracle', description: 'Secure channel to the Project Blue artificial intelligence core.', path: '/oracle', imageText: 'AI CORE' },
-  { id: '5', number: '05 / Storage', category: 'Files', title: 'Intel', description: 'Secure vault for encoding and storing classified schematics.', path: '/files', imageText: 'VAULT' },
-  { id: '6', number: '06 / System', category: 'Config', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP' },
+  { id: 'music', number: '05 / Media', category: 'Audio', title: 'Music', description: 'System audio player and frequency management.', path: '/music', imageText: 'AUDIO' },
+  { id: '5', number: '06 / Storage', category: 'Files', title: 'Intel', description: 'Secure vault for encoding and storing classified schematics.', path: '/files', imageText: 'VAULT' },
+  { id: '6', number: '07 / System', category: 'Config', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP' },
 ];
 
-export const Dashboard: React.FC = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-      const saved = localStorage.getItem('blue_view_mode');
-      return saved === ViewMode.GRID ? ViewMode.GRID : ViewMode.LIST;
-  });
-  
+interface DashboardProps {
+    viewMode: ViewMode;
+    onHeroIntersect: (visible: boolean) => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
-  const [showToggle, setShowToggle] = useState(false);
 
   useEffect(() => {
     // Use IntersectionObserver for robust visibility detection
     const observer = new IntersectionObserver(
         ([entry]) => {
-            // If Hero is NOT intersecting (scrolled past), show the toggle
-            setShowToggle(!entry.isIntersecting);
+            // Report visibility back to App -> Layout
+            // If intersecting, hero is visible -> Hide Toggle
+            // If NOT intersecting, hero hidden -> Show Toggle
+            onHeroIntersect(entry.isIntersecting);
         },
         {
             root: containerRef.current,
@@ -43,26 +44,10 @@ export const Dashboard: React.FC = () => {
     }
 
     return () => observer.disconnect();
-  }, []);
-
-  const toggleView = () => {
-    setViewMode(prev => {
-        const newMode = prev === ViewMode.LIST ? ViewMode.GRID : ViewMode.LIST;
-        localStorage.setItem('blue_view_mode', newMode);
-        return newMode;
-    });
-  };
+  }, [onHeroIntersect]);
 
   return (
     <>
-      <button
-        onClick={toggleView}
-        className={`fixed top-[30px] right-[30px] z-50 flex items-center gap-2 bg-black/20 backdrop-blur-md border-2 border-white text-white px-5 py-2.5 font-bold text-sm uppercase tracking-wider cursor-pointer transition-all duration-300 hover:bg-white hover:text-black hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] rounded-full md:rounded-none ${showToggle ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-10 opacity-0 pointer-events-none'}`}
-      >
-        {viewMode === ViewMode.LIST ? <LayoutGrid size={16} /> : <List size={16} />}
-        <span>Mode: {viewMode === ViewMode.LIST ? 'Grid' : 'List'}</span>
-      </button>
-
       <div 
         ref={containerRef}
         className={`w-full h-full overflow-x-hidden hide-scrollbar ${viewMode === ViewMode.LIST ? 'overflow-y-scroll snap-y snap-mandatory scroll-smooth' : 'overflow-y-auto'}`}

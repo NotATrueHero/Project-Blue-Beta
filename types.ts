@@ -1,9 +1,15 @@
 
 export interface Note {
   id: string;
+  folderId?: string;
   title: string;
   content: string;
   date: string;
+}
+
+export interface NoteFolder {
+  id: string;
+  name: string;
 }
 
 export interface Task {
@@ -22,6 +28,12 @@ export interface Bookmark {
   id: string;
   title: string;
   url: string;
+}
+
+export interface BookmarkCategory {
+  id: string;
+  title: string;
+  bookmarks: Bookmark[];
 }
 
 export interface ToolItem {
@@ -45,14 +57,38 @@ export interface FileItem {
 
 export type Theme = 'standard' | 'stealth';
 
+export interface Track {
+    id: string;
+    title: string;
+    url: string;
+    addedAt: string;
+    isLocal?: boolean;
+}
+
+export interface MusicPlaylist {
+    id: string;
+    title: string;
+    tracks: Track[];
+}
+
+export type LoopMode = 'off' | 'all' | 'one';
+
 export interface UserData {
   version: string;
   pin: string;
   theme: Theme;
   apiKey?: string;
+  
+  // Audio State
+  musicPlaylists: MusicPlaylist[];
+  volume: number;
+  loopMode: LoopMode;
+  shuffle: boolean;
+
   notes: Note[];
+  noteFolders: NoteFolder[];
   taskLists: TaskList[];
-  bookmarks: Bookmark[];
+  bookmarkCategories: BookmarkCategory[];
   files: FileItem[];
 }
 
