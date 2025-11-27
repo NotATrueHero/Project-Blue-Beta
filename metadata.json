@@ -1,5 +1,7 @@
 {
   "name": "Project Blue Beta",
   "description": "A private, high-security digital workspace featuring modular tools, biometric-style authentication, and AI integration.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "geolocation"
+  ]
 }

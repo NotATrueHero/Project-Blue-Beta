@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Play, Pause, LayoutGrid, List } from 'lucide-react';
+import { ArrowLeft, Play, Pause, LayoutGrid, List, Wifi, Zap, Signal } from 'lucide-react';
 import { Theme, ViewMode } from '../types';
 
 // Custom Router Implementation
@@ -41,7 +41,48 @@ interface LayoutProps {
   showViewToggle?: boolean;
   viewMode?: ViewMode;
   onToggleView?: () => void;
+  greetingEnabled?: boolean;
 }
+
+// Telemetry Hook
+const useTelemetry = () => {
+    const [battery, setBattery] = useState<{level: number, charging: boolean} | null>(null);
+    const [network, setNetwork] = useState<string>('ONLINE');
+
+    useEffect(() => {
+        // Battery
+        if ('getBattery' in navigator) {
+            // @ts-ignore
+            navigator.getBattery().then(bat => {
+                const updateBat = () => setBattery({ level: Math.round(bat.level * 100), charging: bat.charging });
+                updateBat();
+                bat.addEventListener('levelchange', updateBat);
+                bat.addEventListener('chargingchange', updateBat);
+            });
+        }
+
+        // Network
+        const updateNet = () => {
+            // @ts-ignore
+            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (conn) {
+                setNetwork(conn.effectiveType ? conn.effectiveType.toUpperCase() : 'WIFI');
+            } else {
+                setNetwork(navigator.onLine ? 'ONLINE' : 'OFFLINE');
+            }
+        };
+        updateNet();
+        window.addEventListener('online', updateNet);
+        window.addEventListener('offline', updateNet);
+        
+        return () => {
+            window.removeEventListener('online', updateNet);
+            window.removeEventListener('offline', updateNet);
+        }
+    }, []);
+
+    return { battery, network };
+};
 
 export const Layout: React.FC<LayoutProps> = ({ 
   children, 
@@ -52,11 +93,13 @@ export const Layout: React.FC<LayoutProps> = ({
   onTogglePlay,
   showViewToggle,
   viewMode,
-  onToggleView
+  onToggleView,
+  greetingEnabled
 }) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const isHome = pathname === '/';
+  const { battery, network } = useTelemetry();
 
   // Theme colors
   const bgClass = theme === 'stealth' ? 'bg-[#020617]' : 'bg-[#0047FF]';
@@ -96,17 +139,39 @@ export const Layout: React.FC<LayoutProps> = ({
                 )}
             </AnimatePresence>
           
-            {/* System Status */}
+            {/* System Status / Telemetry */}
             <motion.div layout className="text-left flex flex-col justify-center">
+                {greetingEnabled && (
+                    <div className="text-[9px] md:text-[10px] font-bold tracking-widest uppercase opacity-70 mb-0.5">
+                        Project Blue Beta
+                    </div>
+                )}
+                
                 <div className="text-[9px] md:text-xs font-bold opacity-50 tracking-widest uppercase mb-0.5 md:mb-1 leading-none">
                     {callsign ? callsign : 'System Status'}
                 </div>
-                <div className={`flex items-center gap-2 backdrop-blur-sm py-1 px-2 md:px-3 rounded-full md:bg-transparent md:p-0 ${accentClass} md:bg-transparent`}>
-                    <div className="relative flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-400 animate-pulse relative z-10"></div>
-                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-400 animate-ping absolute opacity-75"></div>
+                
+                <div className={`flex items-center gap-3 backdrop-blur-sm py-1 px-2 md:px-3 rounded-full md:bg-transparent md:p-0 ${accentClass} md:bg-transparent`}>
+                    {/* Connection */}
+                    <div className="flex items-center gap-1.5" title="Network Status">
+                        {network === 'OFFLINE' ? <Wifi size={10} className="text-red-400" /> : <Signal size={10} className="text-green-400" />}
+                        <span className="font-mono text-[10px] font-bold">{network}</span>
                     </div>
-                    <span className="font-bold text-xs md:text-sm tracking-wider text-green-300 drop-shadow-[0_0_8px_rgba(134,239,172,0.5)] leading-none">ONLINE</span>
+
+                    <div className="w-px h-3 bg-white/30"></div>
+
+                    {/* Battery */}
+                    {battery ? (
+                        <div className="flex items-center gap-1.5" title={`Battery: ${battery.level}%${battery.charging ? ' (Charging)' : ''}`}>
+                            <Zap size={10} className={battery.charging ? 'text-yellow-400' : battery.level < 20 ? 'text-red-400' : 'text-green-400'} />
+                            <span className="font-mono text-[10px] font-bold">{battery.level}%</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1.5">
+                            <Zap size={10} className="text-white/50" />
+                            <span className="font-mono text-[10px] font-bold text-white/50">PWR</span>
+                        </div>
+                    )}
                 </div>
             </motion.div>
         </div>

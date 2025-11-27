@@ -263,7 +263,7 @@ export const Bookmarks: React.FC = () => {
                       >
                           {category.bookmarks.map(bm => (
                               <Reorder.Item key={bm.id} value={bm} className="relative h-full">
-                                  <div className="group relative h-40 border-4 border-white p-6 flex flex-col justify-between hover:bg-white hover:text-blue-base transition-all duration-300 hover:-translate-y-1 cursor-default">
+                                  <div className="group relative h-40 border-4 border-white p-6 flex flex-col justify-between hover:bg-white hover:text-blue-base transition-all duration-300 hover:-translate-y-1 cursor-default overflow-hidden">
                                        
                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                                            <GripVertical className="cursor-grab active:cursor-grabbing p-1" size={24} />
@@ -276,10 +276,10 @@ export const Bookmarks: React.FC = () => {
 
                                        <Globe className="w-8 h-8 opacity-50 group-hover:opacity-100 transition-opacity" />
                                        
-                                       <div>
+                                       <div className="w-full">
                                           <div className="text-xl font-bold uppercase leading-tight mb-2 break-words line-clamp-1">{bm.title}</div>
-                                          <div className="flex items-center gap-2 text-xs font-mono opacity-60 group-hover:opacity-100 truncate">
-                                             <ExternalLink size={12} />
+                                          <div className="flex items-center gap-2 text-xs font-mono opacity-60 group-hover:opacity-100 truncate w-full">
+                                             <ExternalLink size={12} className="shrink-0" />
                                              <span className="truncate">{bm.url}</span>
                                           </div>
                                        </div>

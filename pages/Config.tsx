@@ -2,8 +2,8 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, AlertCircle, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate } from 'lucide-react';
-import { UserData, Theme, MusicPlaylist, LoopMode, BookmarkCategory, Bookmark, WidgetPosition } from '../types';
+import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare } from 'lucide-react';
+import { UserData, Theme, MusicPlaylist, LoopMode, WidgetPosition } from '../types';
 
 interface ConfigProps {
     currentTheme: Theme;
@@ -16,6 +16,10 @@ interface ConfigProps {
     onAutoLockChange: (seconds: number) => void;
     widgetPosition: WidgetPosition;
     onWidgetPositionChange: (pos: WidgetPosition) => void;
+    greetingEnabled: boolean;
+    onGreetingEnabledChange: (enabled: boolean) => void;
+    greetingText: string;
+    onGreetingTextChange: (text: string) => void;
     musicPlaylists: MusicPlaylist[];
     audioState: {
         volume: number;
@@ -30,12 +34,15 @@ export const Config: React.FC<ConfigProps> = ({
     crtEnabled, onCrtChange,
     autoLockSeconds, onAutoLockChange,
     widgetPosition, onWidgetPositionChange,
+    greetingEnabled, onGreetingEnabledChange,
+    greetingText, onGreetingTextChange,
     musicPlaylists, audioState 
 }) => {
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [newCallsign, setNewCallsign] = useState('');
+  const [newGreeting, setNewGreeting] = useState('');
   
   const [apiKey, setApiKey] = useState('');
   const [apiKeyInput, setApiKeyInput] = useState('');
@@ -49,7 +56,8 @@ export const Config: React.FC<ConfigProps> = ({
     setApiKey(storedKey);
     setApiKeyInput(storedKey);
     setNewCallsign(callsign);
-  }, [callsign]);
+    setNewGreeting(greetingText);
+  }, [callsign, greetingText]);
 
   const handleDownload = () => {
     const notes = JSON.parse(localStorage.getItem('blue_notes') || '[]');
@@ -62,15 +70,18 @@ export const Config: React.FC<ConfigProps> = ({
     const widgetPos = (localStorage.getItem('blue_widget_pos') as WidgetPosition) || 'tool';
     const storedApiKey = localStorage.getItem('blue_api_key') || undefined;
     const bookmarkCategories = JSON.parse(localStorage.getItem('blue_uplink_categories') || '[]');
+    const quickLinks = JSON.parse(localStorage.getItem('blue_quick_links') || '[]');
 
     const data: UserData = {
-        version: '2.5',
+        version: '2.7',
         pin,
         theme,
         callsign,
         crtEnabled,
         autoLockSeconds,
         widgetPosition: widgetPos,
+        greetingEnabled,
+        greetingText,
         apiKey: storedApiKey,
         musicPlaylists,
         volume: audioState.volume,
@@ -80,6 +91,7 @@ export const Config: React.FC<ConfigProps> = ({
         noteFolders,
         taskLists,
         bookmarkCategories,
+        quickLinks,
         files,
         fileFolders
     };
@@ -121,6 +133,13 @@ export const Config: React.FC<ConfigProps> = ({
       setTimeout(() => setMessage(null), 3000);
   };
 
+  const handleGreetingSave = (e: React.FormEvent) => {
+      e.preventDefault();
+      onGreetingTextChange(newGreeting.toUpperCase());
+      setMessage({ text: 'Greeting Updated.', type: 'success' });
+      setTimeout(() => setMessage(null), 3000);
+  };
+
   const handleApiKeySave = (e: React.FormEvent) => {
       e.preventDefault();
       localStorage.setItem('blue_api_key', apiKeyInput.trim());
@@ -159,24 +178,29 @@ export const Config: React.FC<ConfigProps> = ({
                 <User size={32} />
                 <h2 className="text-2xl font-bold uppercase tracking-widest">Identity</h2>
             </div>
-            <p className="opacity-80 mb-6 leading-relaxed font-light text-sm">
-                Set operational callsign. Visible on Lock Screen and Header.
-            </p>
-            <form onSubmit={handleCallsignSave} className="flex gap-4">
-                <input 
-                    type="text" 
-                    value={newCallsign}
-                    onChange={(e) => setNewCallsign(e.target.value)}
-                    placeholder="COMMANDER"
-                    className="flex-1 bg-transparent border-b-2 border-white/30 focus:border-white outline-none py-2 text-xl font-bold uppercase"
-                />
-                <button 
-                    type="submit"
-                    className="border-2 border-white px-6 py-2 font-bold uppercase hover:bg-white hover:text-black transition-colors"
-                >
-                    Set
-                </button>
-            </form>
+            
+            <div className="space-y-6">
+                <div>
+                    <p className="opacity-80 mb-2 leading-relaxed font-light text-sm">
+                        Set operational callsign.
+                    </p>
+                    <form onSubmit={handleCallsignSave} className="flex gap-4">
+                        <input 
+                            type="text" 
+                            value={newCallsign}
+                            onChange={(e) => setNewCallsign(e.target.value)}
+                            placeholder="COMMANDER"
+                            className="flex-1 bg-transparent border-b-2 border-white/30 focus:border-white outline-none py-2 text-xl font-bold uppercase"
+                        />
+                        <button 
+                            type="submit"
+                            className="border-2 border-white px-6 py-2 font-bold uppercase hover:bg-white hover:text-black transition-colors"
+                        >
+                            Set
+                        </button>
+                    </form>
+                </div>
+            </div>
         </section>
 
         {/* INTERFACE & VISUALS */}
@@ -201,6 +225,35 @@ export const Config: React.FC<ConfigProps> = ({
                     </button>
                 </div>
 
+                {/* Greeting Config */}
+                <div>
+                    <div className="flex items-center justify-between mb-2">
+                        <div>
+                             <div className="font-bold uppercase tracking-wider flex items-center gap-2">
+                                 <MessageSquare size={16} /> Splash Greeting
+                             </div>
+                             <div className="text-xs opacity-60">Replace logo with custom text</div>
+                        </div>
+                        <button 
+                            onClick={() => onGreetingEnabledChange(!greetingEnabled)}
+                            className={`border border-white py-1 px-3 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all ${greetingEnabled ? 'bg-white text-black' : 'text-white'}`}
+                        >
+                            {greetingEnabled ? 'ENABLED' : 'DISABLED'}
+                        </button>
+                    </div>
+                    {greetingEnabled && (
+                        <form onSubmit={handleGreetingSave} className="flex gap-2">
+                            <input 
+                                value={newGreeting}
+                                onChange={(e) => setNewGreeting(e.target.value)}
+                                placeholder="WELCOME COMMANDER"
+                                className="flex-1 bg-transparent border-b border-white/30 py-1 font-bold uppercase text-sm outline-none"
+                            />
+                            <button type="submit" className="text-xs font-bold uppercase border border-white px-3 hover:bg-white hover:text-black">Save</button>
+                        </form>
+                    )}
+                </div>
+
                 {/* Widget Position */}
                 <div>
                      <div className="font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
@@ -216,9 +269,6 @@ export const Config: React.FC<ConfigProps> = ({
                                 {pos === 'hero' ? 'Splash' : pos === 'tool' ? 'Tool Grid' : 'Hidden'}
                             </button>
                         ))}
-                     </div>
-                     <div className="text-[10px] opacity-60 mt-1 uppercase tracking-wider">
-                         Controls placement of Clock & Search
                      </div>
                 </div>
 
@@ -360,7 +410,7 @@ export const Config: React.FC<ConfigProps> = ({
                         <h2 className="text-2xl font-bold uppercase tracking-widest">System Backup</h2>
                     </div>
                     <p className="opacity-80 leading-relaxed font-light max-w-xl">
-                        Generate a full JSON dump of current system state, including logs, task lists, Uplink coordinates, AI Config, Playlists, and Vault items.
+                        Generate a full JSON dump of current system state.
                     </p>
                 </div>
                 

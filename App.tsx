@@ -16,7 +16,9 @@ import { Chronos } from './pages/Chronos';
 import { Cipher } from './pages/Cipher';
 import { Whiteboard } from './pages/Whiteboard';
 import { Games } from './pages/Games';
-import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition } from './types';
+import { Weather } from './pages/Weather';
+import { News } from './pages/News';
+import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink } from './types';
 
 const App: React.FC = () => {
   const [bootStatus, setBootStatus] = useState<'booting' | 'locked' | 'unlocked'>('booting');
@@ -28,6 +30,8 @@ const App: React.FC = () => {
   const [crtEnabled, setCrtEnabled] = useState<boolean>(false);
   const [autoLockSeconds, setAutoLockSeconds] = useState<number>(0);
   const [widgetPosition, setWidgetPosition] = useState<WidgetPosition>('tool');
+  const [greetingEnabled, setGreetingEnabled] = useState(false);
+  const [greetingText, setGreetingText] = useState('WELCOME COMMANDER');
 
   const { pathname } = useLocation();
 
@@ -62,6 +66,9 @@ const App: React.FC = () => {
     const cachedCrt = localStorage.getItem('blue_crt');
     const cachedAutoLock = localStorage.getItem('blue_autolock');
     const cachedWidgetPos = localStorage.getItem('blue_widget_pos') as WidgetPosition;
+    
+    const cachedGreetingEnabled = localStorage.getItem('blue_greeting_enabled');
+    const cachedGreetingText = localStorage.getItem('blue_greeting_text');
 
     if (cachedPin) {
       setSessionPin(cachedPin);
@@ -70,6 +77,8 @@ const App: React.FC = () => {
       if (cachedCrt) setCrtEnabled(cachedCrt === 'true');
       if (cachedAutoLock) setAutoLockSeconds(parseInt(cachedAutoLock));
       if (cachedWidgetPos) setWidgetPosition(cachedWidgetPos);
+      if (cachedGreetingEnabled) setGreetingEnabled(cachedGreetingEnabled === 'true');
+      if (cachedGreetingText) setGreetingText(cachedGreetingText);
       
       setBootStatus('locked');
     }
@@ -299,7 +308,10 @@ const App: React.FC = () => {
       loadedCallsign?: string,
       loadedCrt?: boolean,
       loadedAutoLock?: number,
-      loadedWidgetPos?: WidgetPosition
+      loadedWidgetPos?: WidgetPosition,
+      quickLinks?: QuickLink[],
+      loadedGreetingEnabled?: boolean,
+      loadedGreetingText?: string
   ) => {
     setSessionPin(pin);
     if (loadedTheme) setTheme(loadedTheme);
@@ -308,6 +320,10 @@ const App: React.FC = () => {
     if (loadedCrt !== undefined) setCrtEnabled(loadedCrt);
     if (loadedAutoLock !== undefined) setAutoLockSeconds(loadedAutoLock);
     if (loadedWidgetPos) setWidgetPosition(loadedWidgetPos);
+    if (loadedGreetingEnabled !== undefined) setGreetingEnabled(loadedGreetingEnabled);
+    if (loadedGreetingText) setGreetingText(loadedGreetingText);
+    
+    if (quickLinks && quickLinks.length > 0) localStorage.setItem('blue_quick_links', JSON.stringify(quickLinks));
     
     setBootStatus(requiresAuth ? 'locked' : 'unlocked');
   };
@@ -339,6 +355,16 @@ const App: React.FC = () => {
   const updateWidgetPosition = (pos: WidgetPosition) => {
       setWidgetPosition(pos);
       localStorage.setItem('blue_widget_pos', pos);
+  };
+
+  const updateGreetingEnabled = (enabled: boolean) => {
+      setGreetingEnabled(enabled);
+      localStorage.setItem('blue_greeting_enabled', String(enabled));
+  };
+
+  const updateGreetingText = (text: string) => {
+      setGreetingText(text);
+      localStorage.setItem('blue_greeting_text', text);
   };
 
   if (bootStatus === 'booting') {
@@ -386,6 +412,10 @@ const App: React.FC = () => {
       content = <Whiteboard />;
   } else if (pathname === '/games') {
       content = <Games />;
+  } else if (pathname === '/weather') {
+      content = <Weather />;
+  } else if (pathname === '/news') {
+      content = <News />;
   }
   else if (pathname === '/config') {
       content = <Config 
@@ -399,11 +429,23 @@ const App: React.FC = () => {
           onAutoLockChange={updateAutoLock}
           widgetPosition={widgetPosition}
           onWidgetPositionChange={updateWidgetPosition}
+          greetingEnabled={greetingEnabled}
+          onGreetingEnabledChange={updateGreetingEnabled}
+          greetingText={greetingText}
+          onGreetingTextChange={updateGreetingText}
           musicPlaylists={playlists} 
           audioState={{ volume, loopMode, shuffle }} 
       />;
   }
-  else content = <Dashboard viewMode={viewMode} onHeroIntersect={(visible) => setShowViewToggle(!visible)} widgetPosition={widgetPosition} />;
+  else content = (
+      <Dashboard 
+        viewMode={viewMode} 
+        onHeroIntersect={(visible) => setShowViewToggle(!visible)} 
+        widgetPosition={widgetPosition} 
+        greetingEnabled={greetingEnabled}
+        greetingText={greetingText}
+      />
+  );
 
   return (
     <Layout 
@@ -419,6 +461,7 @@ const App: React.FC = () => {
             setViewMode(newMode);
             localStorage.setItem('blue_view_mode', newMode);
         }}
+        greetingEnabled={greetingEnabled}
     >
       {content}
     </Layout>

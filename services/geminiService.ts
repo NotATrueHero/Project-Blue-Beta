@@ -27,18 +27,19 @@ export const createOracleChat = (): ChatSession | null => {
 
   try {
     const genAI = new GoogleGenerativeAI(key);
-    // Updated to gemini-2.5-flash for better performance and stability
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash",
-        systemInstruction: 'You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone. Keep answers brief. Do not output internal thought traces or reasoning steps.',
+        model: "gemini-1.5-flash",
+        systemInstruction: 'You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone. Keep answers brief. Do not output internal thought traces or reasoning steps.'
     });
     
-    return model.startChat({
+    const chat = model.startChat({
         history: [],
         generationConfig: {
             maxOutputTokens: 1000,
         }
     });
+    
+    return chat;
   } catch (e) {
     console.error("Failed to create chat session", e);
     return null;

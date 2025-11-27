@@ -3,36 +3,59 @@ import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from '../components/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search } from 'lucide-react';
-import { ViewMode, ToolItem, WidgetPosition } from '../types';
+import { Search, Plus, ExternalLink, X } from 'lucide-react';
+import { ViewMode, ToolItem, WidgetPosition, QuickLink } from '../types';
 
 const tools: ToolItem[] = [
   { id: 'uplink', number: '01 / Network', category: 'Web', title: 'Uplink', description: 'Stored coordinates for external network navigation and quick access.', path: '/uplink', imageText: 'NET BRIDGE' },
   { id: 'notes', number: '02 / System', category: 'Notes', title: 'Notes', description: 'Access classified logs, personal entries, and daily observations.', path: '/notes', imageText: 'NOTES UI' },
   { id: 'tasks', number: '03 / System', category: 'Tasks', title: 'Tasks', description: 'Manage mission objectives and daily operations with real-time tracking.', path: '/tasks', imageText: 'TASK LOG' },
-  { id: 'chronos', number: '04 / Protocol', category: 'Time', title: 'Chronos', description: 'Tactical countdown timer for operational focus intervals.', path: '/chronos', imageText: 'TIMER' },
-  { id: 'oracle', number: '05 / AI', category: 'Oracle', title: 'Oracle', description: 'Secure channel to the Project Blue artificial intelligence core.', path: '/oracle', imageText: 'AI CORE' },
-  { id: 'music', number: '06 / Media', category: 'Audio', title: 'Music', description: 'System audio player and frequency management.', path: '/music', imageText: 'AUDIO' },
-  { id: 'whiteboard', number: '07 / Tac-Ops', category: 'Canvas', title: 'Whiteboard', description: 'Tactical diagramming surface. Capture schematics directly to the vault.', path: '/whiteboard', imageText: 'DIAGRAM' },
-  { id: 'files', number: '08 / Storage', category: 'Files', title: 'Intel', description: 'Secure vault for encoding and storing classified schematics.', path: '/files', imageText: 'VAULT' },
-  { id: 'cipher', number: '09 / Security', category: 'Crypto', title: 'Cipher', description: 'Cryptographic translation engine for secure message encoding.', path: '/cipher', imageText: 'ENCRYPT' },
-  { id: 'games', number: '10 / Sim', category: 'Games', title: 'Games', description: 'Cognitive training simulations and probability engines.', path: '/games', imageText: 'SIMULATE' },
-  { id: 'config', number: '11 / System', category: 'Config', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP' },
+  { id: 'news', number: '04 / Network', category: 'Intel', title: 'Live Intel', description: 'Real-time global information streams and technology updates.', path: '/news', imageText: 'NEWS FEED' },
+  { id: 'weather', number: '05 / Sensor', category: 'Env', title: 'Atmospherics', description: 'Local meteorological data and environmental forecasting.', path: '/weather', imageText: 'WEATHER' },
+  { id: 'chronos', number: '06 / Protocol', category: 'Time', title: 'Chronos', description: 'Tactical countdown timer for operational focus intervals.', path: '/chronos', imageText: 'TIMER' },
+  { id: 'oracle', number: '07 / AI', category: 'Oracle', title: 'Oracle', description: 'Secure channel to the Project Blue artificial intelligence core.', path: '/oracle', imageText: 'AI CORE' },
+  { id: 'music', number: '08 / Media', category: 'Audio', title: 'Music', description: 'System audio player and frequency management.', path: '/music', imageText: 'AUDIO' },
+  { id: 'whiteboard', number: '09 / Tac-Ops', category: 'Canvas', title: 'Whiteboard', description: 'Tactical diagramming surface. Capture schematics directly to the vault.', path: '/whiteboard', imageText: 'DIAGRAM' },
+  { id: 'files', number: '10 / Storage', category: 'Files', title: 'Intel', description: 'Secure vault for encoding and storing classified schematics.', path: '/files', imageText: 'VAULT' },
+  { id: 'cipher', number: '11 / Security', category: 'Crypto', title: 'Cipher', description: 'Cryptographic translation engine for secure message encoding.', path: '/cipher', imageText: 'ENCRYPT' },
+  { id: 'games', number: '12 / Sim', category: 'Games', title: 'Games', description: 'Cognitive training simulations and probability engines.', path: '/games', imageText: 'SIMULATE' },
+  { id: 'config', number: '13 / System', category: 'Config', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP' },
 ];
 
 interface DashboardProps {
     viewMode: ViewMode;
     onHeroIntersect: (visible: boolean) => void;
     widgetPosition: WidgetPosition;
+    greetingEnabled?: boolean;
+    greetingText?: string;
 }
 
 // Reusable System Widget Component
 const SystemWidget: React.FC<{ mode: 'hero' | 'card' }> = ({ mode }) => {
     const [time, setTime] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
+    const [quickLinks, setQuickLinks] = useState<QuickLink[]>([]);
+    const [isAddingLink, setIsAddingLink] = useState(false);
+    const [newLinkTitle, setNewLinkTitle] = useState('');
+    const [newLinkUrl, setNewLinkUrl] = useState('');
 
     useEffect(() => {
         const timer = setInterval(() => setTime(new Date()), 1000);
+        // Load Quick Links
+        const saved = localStorage.getItem('blue_quick_links');
+        if (saved) {
+            setQuickLinks(JSON.parse(saved));
+        } else {
+            // Defaults
+            const defaults: QuickLink[] = [
+                { id: '1', title: 'GOOGLE', url: 'https://google.com' },
+                { id: '2', title: 'MAIL', url: 'https://gmail.com' },
+                { id: '3', title: 'CALENDAR', url: 'https://calendar.google.com' },
+                { id: '4', title: 'YOUTUBE', url: 'https://youtube.com' }
+            ];
+            setQuickLinks(defaults);
+            localStorage.setItem('blue_quick_links', JSON.stringify(defaults));
+        }
         return () => clearInterval(timer);
     }, []);
 
@@ -41,6 +64,31 @@ const SystemWidget: React.FC<{ mode: 'hero' | 'card' }> = ({ mode }) => {
         if (!searchQuery.trim()) return;
         window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
         setSearchQuery('');
+    };
+
+    const saveQuickLinks = (updated: QuickLink[]) => {
+        setQuickLinks(updated);
+        localStorage.setItem('blue_quick_links', JSON.stringify(updated));
+    };
+
+    const addQuickLink = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newLinkTitle || !newLinkUrl) return;
+        const link: QuickLink = {
+            id: Date.now().toString(),
+            title: newLinkTitle.toUpperCase(),
+            url: newLinkUrl.startsWith('http') ? newLinkUrl : `https://${newLinkUrl}`
+        };
+        saveQuickLinks([...quickLinks, link]);
+        setNewLinkTitle('');
+        setNewLinkUrl('');
+        setIsAddingLink(false);
+    };
+
+    const removeQuickLink = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        e.preventDefault();
+        saveQuickLinks(quickLinks.filter(l => l.id !== id));
     };
 
     if (mode === 'hero') {
@@ -71,30 +119,89 @@ const SystemWidget: React.FC<{ mode: 'hero' | 'card' }> = ({ mode }) => {
         );
     }
 
-    // Card Mode
+    // Card Mode (Tool Grid) - With Quick Launch
     return (
         <div className="w-full h-full flex flex-col justify-center gap-4">
-             <div className="flex items-center gap-4">
-                <div className="h-16 flex-1 flex items-center justify-center border-2 border-white font-mono text-xl md:text-2xl font-bold tracking-widest bg-white/5">
+             {/* Clock & Search - Stacked Vertically in Grid for better width */}
+             <div className="flex flex-col gap-4 w-full">
+                <div className="w-full h-16 flex items-center justify-center border-2 border-white font-mono text-2xl font-bold tracking-widest bg-white/5 px-6">
                     {time.toLocaleTimeString([], { hour12: false })}
                 </div>
+                <form onSubmit={handleSearch} className="w-full h-16 flex relative">
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={24} />
+                    <input 
+                        type="text" 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="NET SEARCH..."
+                        className="w-full h-full bg-white/5 border-2 border-white pl-14 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors text-lg"
+                    />
+                </form>
              </div>
-             <form onSubmit={handleSearch} className="flex-1 w-full h-16 flex relative">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={24} />
-                <input 
-                    type="text" 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="NET SEARCH..."
-                    className="w-full h-full bg-white/5 border-2 border-white pl-14 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors text-lg"
-                />
-            </form>
+
+             {/* Quick Launch Speed Dial */}
+             <div className="mt-4 border-t-2 border-white/20 pt-4">
+                 <div className="text-xs font-bold uppercase tracking-widest opacity-60 mb-3 flex justify-between items-center">
+                     <span>Quick Launch</span>
+                     <span className="text-[10px]">{quickLinks.length}/4 SLOTS</span>
+                 </div>
+                 
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                     {quickLinks.slice(0, 4).map(link => (
+                         <a 
+                            key={link.id} 
+                            href={link.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="group/link relative h-16 border border-white/30 flex flex-col items-center justify-center hover:bg-white hover:text-blue-base transition-colors cursor-pointer bg-white/5"
+                         >
+                             <div className="font-bold uppercase text-xs tracking-wider truncate w-full text-center px-1">{link.title}</div>
+                             <ExternalLink size={10} className="absolute top-2 right-2 opacity-50" />
+                             <button 
+                                onClick={(e) => removeQuickLink(e, link.id)}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white p-1 opacity-0 group-hover/link:opacity-100 transition-opacity hover:bg-red-600 rounded-full"
+                             >
+                                 <X size={10} />
+                             </button>
+                         </a>
+                     ))}
+                     
+                     {quickLinks.length < 4 && (
+                         !isAddingLink ? (
+                             <button 
+                                onClick={() => setIsAddingLink(true)}
+                                className="h-16 border border-dashed border-white/30 flex items-center justify-center text-white/50 hover:text-white hover:border-white transition-colors"
+                             >
+                                 <Plus size={20} />
+                             </button>
+                         ) : (
+                             <form onSubmit={addQuickLink} className="col-span-1 md:col-span-1 h-full flex flex-col gap-1">
+                                 <input 
+                                    autoFocus
+                                    value={newLinkTitle}
+                                    onChange={e => setNewLinkTitle(e.target.value)}
+                                    placeholder="TITLE" 
+                                    className="bg-white/10 text-[10px] px-2 py-1 outline-none text-white uppercase border border-white/20"
+                                    maxLength={8}
+                                 />
+                                 <input 
+                                    value={newLinkUrl}
+                                    onChange={e => setNewLinkUrl(e.target.value)}
+                                    placeholder="URL" 
+                                    className="bg-white/10 text-[10px] px-2 py-1 outline-none text-white border border-white/20"
+                                 />
+                                 <button type="submit" className="hidden">Add</button>
+                             </form>
+                         )
+                     )}
+                 </div>
+             </div>
         </div>
     );
 };
 
 
-export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect, widgetPosition }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect, widgetPosition, greetingEnabled, greetingText }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -134,22 +241,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
                 transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
                 className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-24 w-[90%] max-w-6xl mt-8"
             >
-                <div className="flex flex-col text-center md:text-left z-10">
-                    <span className="font-bold uppercase leading-[0.9] text-[clamp(32px,10vw,100px)] tracking-tighter mix-blend-overlay">Project</span>
-                    <span className="font-bold uppercase leading-[0.9] text-[clamp(32px,10vw,100px)] tracking-tighter">Blue Beta</span>
-                </div>
-
-                <div className="flex flex-col items-center group cursor-default">
-                    <div className="text-[24px] md:text-[40px] font-bold uppercase mb-2 tracking-[0.2em] group-hover:tracking-[0.5em] transition-all duration-500">EXIT</div>
-                    <div className="relative h-[200px] w-[150px] md:h-[350px] md:w-[300px] flex items-center justify-center overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-white/90 z-10" />
-                        <img 
-                            src="https://upload.wikimedia.org/wikipedia/commons/3/32/Runner_stickman.png" 
-                            alt="Runner" 
-                            className="relative z-20 w-[90%] brightness-0 invert -translate-x-4 group-hover:translate-x-4 transition-transform duration-700 ease-out" 
-                        />
+                {greetingEnabled ? (
+                    <div className="flex flex-col text-center z-10">
+                        <span className="font-bold uppercase leading-[0.9] text-[clamp(40px,12vw,140px)] tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 mb-4">
+                            {greetingText || 'WELCOME'}
+                        </span>
+                        <div className="h-1 w-32 bg-white/50 mx-auto" />
                     </div>
-                </div>
+                ) : (
+                    <>
+                        <div className="flex flex-col text-center md:text-left z-10">
+                            <span className="font-bold uppercase leading-[0.9] text-[clamp(32px,10vw,100px)] tracking-tighter mix-blend-overlay">Project</span>
+                            <span className="font-bold uppercase leading-[0.9] text-[clamp(32px,10vw,100px)] tracking-tighter">Blue Beta</span>
+                        </div>
+
+                        <div className="flex flex-col items-center group cursor-default">
+                            <div className="text-[24px] md:text-[40px] font-bold uppercase mb-2 tracking-[0.2em] group-hover:tracking-[0.5em] transition-all duration-500">EXIT</div>
+                            <div className="relative h-[200px] w-[150px] md:h-[350px] md:w-[300px] flex items-center justify-center overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-white/90 z-10" />
+                                <img 
+                                    src="https://upload.wikimedia.org/wikipedia/commons/3/32/Runner_stickman.png" 
+                                    alt="Runner" 
+                                    className="relative z-20 w-[90%] brightness-0 invert -translate-x-4 group-hover:translate-x-4 transition-transform duration-700 ease-out" 
+                                />
+                            </div>
+                        </div>
+                    </>
+                )}
             </motion.div>
 
             {/* UTILITY BAR (Hero Mode) */}
@@ -178,7 +296,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
                     className={`transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col justify-center relative
                     ${viewMode === ViewMode.LIST 
                         ? 'w-full h-screen snap-start border-b border-white/10 items-center py-20 px-4' 
-                        : 'w-full h-auto min-h-[300px] md:min-h-[400px] border-4 border-white p-6 md:p-8 hover:-translate-y-2 hover:bg-white hover:text-black group'
+                        : 'w-full h-auto min-h-[300px] md:min-h-[400px] border-4 border-white p-6 md:p-8 hover:-translate-y-2 hover:bg-white hover:text-black group cursor-default'
                     }`}
                 >
                      <div className={`flex items-center justify-between gap-8 md:gap-12 max-w-6xl w-[90%] transition-all duration-700 ${viewMode === ViewMode.GRID ? 'flex-col w-full gap-6' : 'flex-col md:flex-row'}`}>

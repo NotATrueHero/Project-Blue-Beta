@@ -36,6 +36,12 @@ export interface BookmarkCategory {
   bookmarks: Bookmark[];
 }
 
+export interface QuickLink {
+    id: string;
+    title: string;
+    url: string;
+}
+
 export interface ToolItem {
   id: string;
   number: string;
@@ -48,7 +54,7 @@ export interface ToolItem {
 
 export interface FileFolder {
   id: string;
-  parentId?: string; // Added for nesting
+  parentId?: string;
   name: string;
 }
 
@@ -90,6 +96,11 @@ export interface UserData {
   crtEnabled?: boolean; 
   autoLockSeconds?: number;
   widgetPosition?: WidgetPosition;
+  
+  // Greeting Config
+  greetingEnabled?: boolean;
+  greetingText?: string;
+
   apiKey?: string;
   
   // Audio State
@@ -102,6 +113,7 @@ export interface UserData {
   noteFolders: NoteFolder[];
   taskLists: TaskList[];
   bookmarkCategories: BookmarkCategory[];
+  quickLinks?: QuickLink[]; 
   files: FileItem[];
   fileFolders: FileFolder[]; 
 }

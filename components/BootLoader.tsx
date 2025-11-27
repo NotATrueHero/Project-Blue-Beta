@@ -1,9 +1,8 @@
-
 import * as React from 'react';
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Power, AlertTriangle } from 'lucide-react';
-import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition } from '../types';
+import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition, QuickLink } from '../types';
 
 interface BootLoaderProps {
   onLoadComplete: (
@@ -14,7 +13,10 @@ interface BootLoaderProps {
       callsign?: string, 
       crtEnabled?: boolean, 
       autoLockSeconds?: number,
-      widgetPosition?: WidgetPosition
+      widgetPosition?: WidgetPosition,
+      quickLinks?: QuickLink[],
+      greetingEnabled?: boolean,
+      greetingText?: string
   ) => void;
 }
 
@@ -68,6 +70,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
             }];
         }
 
+        const quickLinks: QuickLink[] = data.quickLinks || [];
+
         // Seed LocalStorage
         localStorage.setItem('blue_pin', data.pin);
         if (data.callsign) localStorage.setItem('blue_callsign', data.callsign);
@@ -78,6 +82,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         localStorage.setItem('blue_uplink_categories', JSON.stringify(bookmarkCategories));
         localStorage.removeItem('blue_uplinks');
         
+        if (quickLinks.length > 0) localStorage.setItem('blue_quick_links', JSON.stringify(quickLinks));
+
         localStorage.setItem('blue_files', JSON.stringify(data.files || []));
         localStorage.setItem('blue_file_folders', JSON.stringify(data.fileFolders || [])); 
 
@@ -86,6 +92,9 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         if (data.autoLockSeconds !== undefined) localStorage.setItem('blue_autolock', String(data.autoLockSeconds));
         if (data.widgetPosition) localStorage.setItem('blue_widget_pos', data.widgetPosition);
         
+        if (data.greetingEnabled !== undefined) localStorage.setItem('blue_greeting_enabled', String(data.greetingEnabled));
+        if (data.greetingText) localStorage.setItem('blue_greeting_text', data.greetingText);
+
         if (musicPlaylists.length > 0) {
             localStorage.setItem('blue_music_playlists', JSON.stringify(musicPlaylists));
         }
@@ -110,7 +119,10 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
                 data.callsign,
                 data.crtEnabled,
                 data.autoLockSeconds,
-                data.widgetPosition
+                data.widgetPosition,
+                quickLinks,
+                data.greetingEnabled,
+                data.greetingText
             );
         }, 800);
 
@@ -123,18 +135,18 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
   };
 
   const handleNewSession = () => {
-    // Wipe Storage
-    localStorage.clear();
+        // Wipe Storage
+        localStorage.clear();
+        
+        // Set Default PIN
+        const defaultPin = "1969";
+        localStorage.setItem('blue_pin', defaultPin);
+        
+        // Default Widget Position
+        localStorage.setItem('blue_widget_pos', 'tool');
     
-    // Set Default PIN
-    const defaultPin = "1969";
-    localStorage.setItem('blue_pin', defaultPin);
-    
-    // Default Widget Position
-    localStorage.setItem('blue_widget_pos', 'tool');
-
-    // Boot without auth
-    onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool');
+        // Boot without auth
+        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
