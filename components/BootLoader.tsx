@@ -6,7 +6,7 @@ import { Upload, Power, AlertTriangle } from 'lucide-react';
 import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark } from '../types';
 
 interface BootLoaderProps {
-  onLoadComplete: (pin: string, requiresAuth: boolean, theme?: Theme, playlists?: MusicPlaylist[]) => void;
+  onLoadComplete: (pin: string, requiresAuth: boolean, theme?: Theme, playlists?: MusicPlaylist[], callsign?: string, crtEnabled?: boolean, autoLockSeconds?: number) => void;
 }
 
 export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
@@ -61,15 +61,18 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
 
         // Seed LocalStorage
         localStorage.setItem('blue_pin', data.pin);
+        if (data.callsign) localStorage.setItem('blue_callsign', data.callsign);
+        
         localStorage.setItem('blue_notes', JSON.stringify(data.notes));
         localStorage.setItem('blue_note_folders', JSON.stringify(data.noteFolders || []));
         localStorage.setItem('blue_task_lists', JSON.stringify(taskLists));
         localStorage.setItem('blue_uplink_categories', JSON.stringify(bookmarkCategories));
-        // Remove old key if exists to prevent confusion
         localStorage.removeItem('blue_uplinks');
         
         localStorage.setItem('blue_files', JSON.stringify(data.files || []));
         localStorage.setItem('blue_theme', data.theme || 'standard');
+        if (data.crtEnabled !== undefined) localStorage.setItem('blue_crt', String(data.crtEnabled));
+        if (data.autoLockSeconds !== undefined) localStorage.setItem('blue_autolock', String(data.autoLockSeconds));
         
         if (musicPlaylists.length > 0) {
             localStorage.setItem('blue_music_playlists', JSON.stringify(musicPlaylists));
@@ -87,7 +90,15 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
 
         // Boot
         setTimeout(() => {
-            onLoadComplete(data.pin, true, data.theme, musicPlaylists);
+            onLoadComplete(
+                data.pin, 
+                true, 
+                data.theme, 
+                musicPlaylists,
+                data.callsign,
+                data.crtEnabled,
+                data.autoLockSeconds
+            );
         }, 800);
 
       } catch (err) {

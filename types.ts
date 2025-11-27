@@ -76,7 +76,10 @@ export type LoopMode = 'off' | 'all' | 'one';
 export interface UserData {
   version: string;
   pin: string;
+  callsign?: string; // New
   theme: Theme;
+  crtEnabled?: boolean; // New
+  autoLockSeconds?: number; // New (0 = never)
   apiKey?: string;
   
   // Audio State

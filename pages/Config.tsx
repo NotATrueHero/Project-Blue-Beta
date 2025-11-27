@@ -2,12 +2,18 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, AlertCircle, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle } from 'lucide-react';
+import { Download, Save, Lock, AlertCircle, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck } from 'lucide-react';
 import { UserData, Theme, MusicPlaylist, LoopMode, BookmarkCategory, Bookmark } from '../types';
 
 interface ConfigProps {
     currentTheme: Theme;
     onThemeChange: (t: Theme) => void;
+    callsign: string;
+    onCallsignChange: (name: string) => void;
+    crtEnabled: boolean;
+    onCrtChange: (enabled: boolean) => void;
+    autoLockSeconds: number;
+    onAutoLockChange: (seconds: number) => void;
     musicPlaylists: MusicPlaylist[];
     audioState: {
         volume: number;
@@ -16,10 +22,17 @@ interface ConfigProps {
     };
 }
 
-export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange, musicPlaylists, audioState }) => {
+export const Config: React.FC<ConfigProps> = ({ 
+    currentTheme, onThemeChange, 
+    callsign, onCallsignChange,
+    crtEnabled, onCrtChange,
+    autoLockSeconds, onAutoLockChange,
+    musicPlaylists, audioState 
+}) => {
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
+  const [newCallsign, setNewCallsign] = useState('');
   
   const [apiKey, setApiKey] = useState('');
   const [apiKeyInput, setApiKeyInput] = useState('');
@@ -32,43 +45,26 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange, mus
     const storedKey = localStorage.getItem('blue_api_key') || '';
     setApiKey(storedKey);
     setApiKeyInput(storedKey);
-  }, []);
+    setNewCallsign(callsign);
+  }, [callsign]);
 
   const handleDownload = () => {
     const notes = JSON.parse(localStorage.getItem('blue_notes') || '[]');
     const noteFolders = JSON.parse(localStorage.getItem('blue_note_folders') || '[]');
     const taskLists = JSON.parse(localStorage.getItem('blue_task_lists') || '[]');
-    
-    // Legacy migration for tasks
-    if (taskLists.length === 0) {
-        const legacyTasks = JSON.parse(localStorage.getItem('blue_tasks') || '[]');
-        if (legacyTasks.length > 0) {
-            taskLists.push({ id: 'legacy', title: 'Restored Tasks', tasks: legacyTasks });
-        }
-    }
-
-    // Bookmarks Migration Logic
-    let bookmarkCategories = JSON.parse(localStorage.getItem('blue_uplink_categories') || '[]');
-    if (bookmarkCategories.length === 0) {
-        const legacyBookmarks = JSON.parse(localStorage.getItem('blue_uplinks') || '[]');
-        if (legacyBookmarks.length > 0) {
-            bookmarkCategories = [{
-                id: 'legacy-export',
-                title: 'Restored Links',
-                bookmarks: legacyBookmarks
-            }];
-        }
-    }
-
     const files = JSON.parse(localStorage.getItem('blue_files') || '[]');
     const pin = localStorage.getItem('blue_pin') || '1969';
     const theme = (localStorage.getItem('blue_theme') as Theme) || 'standard';
     const storedApiKey = localStorage.getItem('blue_api_key') || undefined;
+    const bookmarkCategories = JSON.parse(localStorage.getItem('blue_uplink_categories') || '[]');
 
     const data: UserData = {
-        version: '2.3',
+        version: '2.4',
         pin,
         theme,
+        callsign,
+        crtEnabled,
+        autoLockSeconds,
         apiKey: storedApiKey,
         musicPlaylists,
         volume: audioState.volume,
@@ -111,6 +107,13 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange, mus
     setTimeout(() => setMessage(null), 3000);
   };
 
+  const handleCallsignSave = (e: React.FormEvent) => {
+      e.preventDefault();
+      onCallsignChange(newCallsign.toUpperCase());
+      setMessage({ text: 'Identity Protocol Updated.', type: 'success' });
+      setTimeout(() => setMessage(null), 3000);
+  };
+
   const handleApiKeySave = (e: React.FormEvent) => {
       e.preventDefault();
       localStorage.setItem('blue_api_key', apiKeyInput.trim());
@@ -143,23 +146,65 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange, mus
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-24">
         
-        {/* VISUAL INTERFACE */}
-        <section className="border-4 border-white p-8 relative overflow-hidden flex flex-col justify-between">
-            <div>
-                <div className="flex items-center gap-4 mb-6">
-                    {currentTheme === 'standard' ? <Eye size={32} /> : <EyeOff size={32} />}
-                    <h2 className="text-2xl font-bold uppercase tracking-widest">Interface</h2>
-                </div>
-                <p className="opacity-80 mb-8 leading-relaxed font-light">
-                    Toggle visual output mode. Standard mode uses high-contrast Blue. Stealth mode optimizes for low-light environments.
-                </p>
+        {/* IDENTITY */}
+        <section className="border-4 border-white p-8">
+            <div className="flex items-center gap-4 mb-6">
+                <User size={32} />
+                <h2 className="text-2xl font-bold uppercase tracking-widest">Identity</h2>
             </div>
-            <button 
-                onClick={toggleTheme}
-                className="w-full flex items-center justify-center gap-3 bg-white text-black px-6 py-3 font-bold uppercase tracking-wider hover:bg-opacity-90 transition-all border-2 border-transparent hover:border-white hover:bg-transparent hover:text-white"
-            >
-                {currentTheme === 'standard' ? 'Enable Stealth Mode' : 'Enable Standard Mode'}
-            </button>
+            <p className="opacity-80 mb-6 leading-relaxed font-light text-sm">
+                Set operational callsign. Visible on Lock Screen and Header.
+            </p>
+            <form onSubmit={handleCallsignSave} className="flex gap-4">
+                <input 
+                    type="text" 
+                    value={newCallsign}
+                    onChange={(e) => setNewCallsign(e.target.value)}
+                    placeholder="COMMANDER"
+                    className="flex-1 bg-transparent border-b-2 border-white/30 focus:border-white outline-none py-2 text-xl font-bold uppercase"
+                />
+                <button 
+                    type="submit"
+                    className="border-2 border-white px-6 py-2 font-bold uppercase hover:bg-white hover:text-black transition-colors"
+                >
+                    Set
+                </button>
+            </form>
+        </section>
+
+        {/* INTERFACE & VISUALS */}
+        <section className="border-4 border-white p-8">
+            <div className="flex items-center gap-4 mb-6">
+                <Monitor size={32} />
+                <h2 className="text-2xl font-bold uppercase tracking-widest">Interface</h2>
+            </div>
+            
+            <div className="space-y-6">
+                {/* Theme Toggle */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="font-bold uppercase tracking-wider mb-1 flex items-center gap-2">
+                             {currentTheme === 'standard' ? <Eye size={16} /> : <EyeOff size={16} />}
+                             <span>Color Mode</span>
+                        </div>
+                        <div className="text-xs opacity-60">High-Contrast Blue vs Low-Light Stealth</div>
+                    </div>
+                    <button onClick={toggleTheme} className="border border-white px-4 py-1 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all">
+                        {currentTheme === 'standard' ? 'Switch Stealth' : 'Switch Standard'}
+                    </button>
+                </div>
+
+                {/* CRT Toggle */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="font-bold uppercase tracking-wider mb-1">CRT Overlay</div>
+                        <div className="text-xs opacity-60">Retro-style scanline simulation</div>
+                    </div>
+                    <button onClick={() => onCrtChange(!crtEnabled)} className={`w-12 h-6 border border-white flex items-center p-1 transition-all ${crtEnabled ? 'bg-white justify-end' : 'bg-transparent justify-start'}`}>
+                         <div className={`w-4 h-4 ${crtEnabled ? 'bg-blue-base' : 'bg-white'}`} />
+                    </button>
+                </div>
+            </div>
         </section>
 
         {/* SECURITY */}
@@ -169,38 +214,61 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange, mus
                 <h2 className="text-2xl font-bold uppercase tracking-widest">Security</h2>
             </div>
             
-            <div className="mb-6 flex items-center gap-3 text-sm opacity-70">
-                <AlertCircle size={16} />
-                <span>Current PIN: <span className="font-mono bg-white/20 px-2 py-0.5 rounded ml-2">{currentPin}</span></span>
-            </div>
-
-            <form onSubmit={handlePinChange} className="space-y-4">
-                <div className="flex gap-4">
-                    <input 
-                        type="password" 
-                        maxLength={4}
-                        value={newPin}
-                        onChange={(e) => setNewPin(e.target.value)}
-                        className="w-full bg-transparent border-b-2 border-white/30 focus:border-white outline-none py-2 text-xl font-bold font-mono tracking-[1em]"
-                        placeholder="NEW"
-                    />
-                    <input 
-                        type="password" 
-                        maxLength={4}
-                        value={confirmPin}
-                        onChange={(e) => setConfirmPin(e.target.value)}
-                        className="w-full bg-transparent border-b-2 border-white/30 focus:border-white outline-none py-2 text-xl font-bold font-mono tracking-[1em]"
-                        placeholder="CNFM"
-                    />
+            <div className="space-y-8">
+                {/* Auto Lock */}
+                <div>
+                     <div className="flex items-center gap-2 mb-4 font-bold uppercase tracking-wider">
+                         <Clock size={16} /> Auto-Lock Timer
+                     </div>
+                     <div className="grid grid-cols-4 gap-2">
+                         {[0, 60, 300, 600].map(time => (
+                             <button 
+                                key={time}
+                                onClick={() => onAutoLockChange(time)}
+                                className={`border border-white py-2 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all ${autoLockSeconds === time ? 'bg-white text-black' : 'text-white'}`}
+                             >
+                                 {time === 0 ? 'Never' : `${time / 60} Min`}
+                             </button>
+                         ))}
+                     </div>
                 </div>
-                <button 
-                    type="submit"
-                    className="w-full border-2 border-white px-6 py-2 font-bold uppercase hover:bg-white hover:text-black transition-colors flex items-center justify-center gap-2 mt-4"
-                >
-                    <RefreshCw size={16} />
-                    Update PIN
-                </button>
-            </form>
+
+                {/* PIN Change */}
+                <div>
+                    <div className="flex items-center gap-3 text-sm opacity-70 mb-4">
+                        <ShieldCheck size={16} />
+                        <span>Current PIN: <span className="font-mono bg-white/20 px-2 py-0.5 rounded ml-2">{currentPin}</span></span>
+                    </div>
+
+                    <form onSubmit={handlePinChange} className="space-y-4">
+                        <div className="flex gap-4">
+                            <input 
+                                type="password" 
+                                maxLength={4}
+                                value={newPin}
+                                onChange={(e) => setNewPin(e.target.value)}
+                                className="w-full bg-transparent border-b-2 border-white/30 focus:border-white outline-none py-2 text-xl font-bold font-mono tracking-[1em]"
+                                placeholder="NEW"
+                            />
+                            <input 
+                                type="password" 
+                                maxLength={4}
+                                value={confirmPin}
+                                onChange={(e) => setConfirmPin(e.target.value)}
+                                className="w-full bg-transparent border-b-2 border-white/30 focus:border-white outline-none py-2 text-xl font-bold font-mono tracking-[1em]"
+                                placeholder="CNFM"
+                            />
+                        </div>
+                        <button 
+                            type="submit"
+                            className="w-full border-2 border-white px-6 py-2 font-bold uppercase hover:bg-white hover:text-black transition-colors flex items-center justify-center gap-2 mt-4"
+                        >
+                            <RefreshCw size={16} />
+                            Update PIN
+                        </button>
+                    </form>
+                </div>
+            </div>
         </section>
 
         {/* AI CONFIG */}

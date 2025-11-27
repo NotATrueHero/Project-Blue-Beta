@@ -17,7 +17,13 @@ import { Theme, MusicPlaylist, ViewMode, LoopMode, Track } from './types';
 const App: React.FC = () => {
   const [bootStatus, setBootStatus] = useState<'booting' | 'locked' | 'unlocked'>('booting');
   const [sessionPin, setSessionPin] = useState<string>('1969');
+  
+  // --- SETTINGS STATE ---
   const [theme, setTheme] = useState<Theme>('standard');
+  const [callsign, setCallsign] = useState<string>('');
+  const [crtEnabled, setCrtEnabled] = useState<boolean>(false);
+  const [autoLockSeconds, setAutoLockSeconds] = useState<number>(0);
+
   const { pathname } = useLocation();
 
   // --- DASHBOARD STATE ---
@@ -39,14 +45,25 @@ const App: React.FC = () => {
   const [shuffle, setShuffle] = useState(false);
   const [shuffledQueue, setShuffledQueue] = useState<string[]>([]);
 
+  // --- AUTO LOCK TIMER REF ---
+  const activityTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // --- INIT & MIGRATION ---
   useEffect(() => {
     // 1. Session & Auth
     const cachedPin = localStorage.getItem('blue_pin');
     const cachedTheme = localStorage.getItem('blue_theme') as Theme;
+    const cachedCallsign = localStorage.getItem('blue_callsign');
+    const cachedCrt = localStorage.getItem('blue_crt');
+    const cachedAutoLock = localStorage.getItem('blue_autolock');
+
     if (cachedPin) {
       setSessionPin(cachedPin);
       if (cachedTheme) setTheme(cachedTheme);
+      if (cachedCallsign) setCallsign(cachedCallsign);
+      if (cachedCrt) setCrtEnabled(cachedCrt === 'true');
+      if (cachedAutoLock) setAutoLockSeconds(parseInt(cachedAutoLock));
+      
       setBootStatus('locked');
     }
 
@@ -84,6 +101,37 @@ const App: React.FC = () => {
     }
 
   }, []); // Run once on mount
+
+  // --- AUTO LOCK LOGIC ---
+  const resetActivityTimer = useCallback(() => {
+    if (bootStatus !== 'unlocked' || autoLockSeconds <= 0) return;
+
+    if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
+
+    activityTimerRef.current = setTimeout(() => {
+        setBootStatus('locked');
+    }, autoLockSeconds * 1000);
+  }, [bootStatus, autoLockSeconds]);
+
+  useEffect(() => {
+      // Set up activity listeners
+      if (bootStatus === 'unlocked' && autoLockSeconds > 0) {
+          window.addEventListener('mousemove', resetActivityTimer);
+          window.addEventListener('keydown', resetActivityTimer);
+          window.addEventListener('click', resetActivityTimer);
+          resetActivityTimer(); // start timer
+      } else {
+          if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
+      }
+
+      return () => {
+          window.removeEventListener('mousemove', resetActivityTimer);
+          window.removeEventListener('keydown', resetActivityTimer);
+          window.removeEventListener('click', resetActivityTimer);
+          if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
+      };
+  }, [bootStatus, autoLockSeconds, resetActivityTimer]);
+
 
   // --- AUDIO LOGIC ---
   const activePlaylist = playlists.find(p => p.id === activePlaylistId);
@@ -236,10 +284,22 @@ const App: React.FC = () => {
       localStorage.setItem('blue_shuffle', String(newVal));
   };
 
-  const handleBootComplete = (pin: string, requiresAuth: boolean, loadedTheme?: Theme, loadedPlaylists?: MusicPlaylist[]) => {
+  const handleBootComplete = (
+      pin: string, 
+      requiresAuth: boolean, 
+      loadedTheme?: Theme, 
+      loadedPlaylists?: MusicPlaylist[],
+      loadedCallsign?: string,
+      loadedCrt?: boolean,
+      loadedAutoLock?: number
+  ) => {
     setSessionPin(pin);
     if (loadedTheme) setTheme(loadedTheme);
     if (loadedPlaylists) setPlaylists(loadedPlaylists);
+    if (loadedCallsign) setCallsign(loadedCallsign);
+    if (loadedCrt !== undefined) setCrtEnabled(loadedCrt);
+    if (loadedAutoLock !== undefined) setAutoLockSeconds(loadedAutoLock);
+    
     setBootStatus(requiresAuth ? 'locked' : 'unlocked');
   };
 
@@ -251,13 +311,28 @@ const App: React.FC = () => {
       setTheme(newTheme);
       localStorage.setItem('blue_theme', newTheme);
   };
+  
+  const updateCallsign = (name: string) => {
+      setCallsign(name);
+      localStorage.setItem('blue_callsign', name);
+  };
+  
+  const updateCrt = (enabled: boolean) => {
+      setCrtEnabled(enabled);
+      localStorage.setItem('blue_crt', String(enabled));
+  };
+
+  const updateAutoLock = (seconds: number) => {
+      setAutoLockSeconds(seconds);
+      localStorage.setItem('blue_autolock', String(seconds));
+  };
 
   if (bootStatus === 'booting') {
       return <BootLoader onLoadComplete={handleBootComplete} />;
   }
 
   if (bootStatus === 'locked') {
-    return <LockScreen targetPin={sessionPin} onUnlock={() => setBootStatus('unlocked')} onReset={handleSystemReset} />;
+    return <LockScreen targetPin={sessionPin} onUnlock={() => setBootStatus('unlocked')} onReset={handleSystemReset} callsign={callsign} />;
   }
 
   let content;
@@ -293,7 +368,13 @@ const App: React.FC = () => {
   else if (pathname === '/config') {
       content = <Config 
           currentTheme={theme} 
-          onThemeChange={updateTheme} 
+          onThemeChange={updateTheme}
+          callsign={callsign}
+          onCallsignChange={updateCallsign}
+          crtEnabled={crtEnabled}
+          onCrtChange={updateCrt}
+          autoLockSeconds={autoLockSeconds}
+          onAutoLockChange={updateAutoLock}
           musicPlaylists={playlists} 
           audioState={{ volume, loopMode, shuffle }} 
       />;
@@ -303,6 +384,8 @@ const App: React.FC = () => {
   return (
     <Layout 
         theme={theme} 
+        callsign={callsign}
+        crtEnabled={crtEnabled}
         isPlaying={isPlaying} 
         onTogglePlay={() => setIsPlaying(!isPlaying)}
         showViewToggle={showViewToggle && (pathname === '/' || pathname === '')}

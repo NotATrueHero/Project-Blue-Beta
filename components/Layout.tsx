@@ -34,9 +34,10 @@ export const Link: React.FC<{to: string; children: React.ReactNode; className?: 
 interface LayoutProps {
   children: React.ReactNode;
   theme: Theme;
+  callsign?: string;
+  crtEnabled?: boolean;
   isPlaying: boolean;
   onTogglePlay: () => void;
-  // New props for View Toggle interaction
   showViewToggle?: boolean;
   viewMode?: ViewMode;
   onToggleView?: () => void;
@@ -45,6 +46,8 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ 
   children, 
   theme, 
+  callsign,
+  crtEnabled,
   isPlaying, 
   onTogglePlay,
   showViewToggle,
@@ -61,6 +64,17 @@ export const Layout: React.FC<LayoutProps> = ({
 
   return (
     <div className={`w-full h-screen ${bgClass} text-white overflow-hidden relative font-sans transition-colors duration-700`}>
+      {/* CRT Scanline Overlay */}
+      {crtEnabled && (
+        <div 
+            className="absolute inset-0 pointer-events-none z-[100] opacity-20"
+            style={{
+                background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))',
+                backgroundSize: '100% 2px, 3px 100%'
+            }}
+        />
+      )}
+
       {/* Global Header / Nav */}
       <div className="fixed top-0 left-0 w-full z-40 p-6 md:p-8 flex justify-between items-start pointer-events-none">
         
@@ -84,7 +98,9 @@ export const Layout: React.FC<LayoutProps> = ({
           
             {/* System Status */}
             <motion.div layout className="text-left flex flex-col justify-center">
-                <div className="text-[10px] md:text-xs font-bold opacity-50 tracking-widest uppercase mb-1 leading-none">System Status</div>
+                <div className="text-[10px] md:text-xs font-bold opacity-50 tracking-widest uppercase mb-1 leading-none">
+                    {callsign ? callsign : 'System Status'}
+                </div>
                 <div className={`flex items-center gap-2 backdrop-blur-sm py-1 px-3 rounded-full md:bg-transparent md:p-0 ${accentClass} md:bg-transparent`}>
                     <div className="relative flex items-center justify-center">
                         <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse relative z-10"></div>
@@ -97,6 +113,22 @@ export const Layout: React.FC<LayoutProps> = ({
 
         {/* Right Side: Music & View Toggle */}
         <div className="pointer-events-auto flex items-center gap-4">
+             {/* View Toggle (Grid/List) - Appears first to push music left */}
+            <AnimatePresence>
+                {showViewToggle && onToggleView && viewMode && (
+                    <motion.button
+                        initial={{ opacity: 0, width: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, width: 'auto', scale: 1 }}
+                        exit={{ opacity: 0, width: 0, scale: 0.8 }}
+                        onClick={onToggleView}
+                        className={`flex items-center gap-2 backdrop-blur-sm border border-white/20 hover:bg-white hover:text-black hover:border-white px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors whitespace-nowrap overflow-hidden ${accentClass}`}
+                    >
+                        {viewMode === ViewMode.LIST ? <LayoutGrid size={16} /> : <List size={16} />}
+                        <span className="hidden md:inline">Mode: {viewMode === ViewMode.LIST ? 'Grid' : 'List'}</span>
+                    </motion.button>
+                )}
+            </AnimatePresence>
+
             {/* Music Visualizer / Toggle */}
             <motion.button 
                 layout
@@ -126,22 +158,6 @@ export const Layout: React.FC<LayoutProps> = ({
                 </div>
                 {isPlaying ? <Pause size={16} /> : <Play size={16} />}
             </motion.button>
-
-            {/* View Toggle (Grid/List) */}
-            <AnimatePresence>
-                {showViewToggle && onToggleView && viewMode && (
-                    <motion.button
-                        initial={{ opacity: 0, width: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, width: 'auto', scale: 1 }}
-                        exit={{ opacity: 0, width: 0, scale: 0.8 }}
-                        onClick={onToggleView}
-                        className={`flex items-center gap-2 backdrop-blur-sm border border-white/20 hover:bg-white hover:text-black hover:border-white px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors whitespace-nowrap overflow-hidden ${accentClass}`}
-                    >
-                        {viewMode === ViewMode.LIST ? <LayoutGrid size={16} /> : <List size={16} />}
-                        <span className="hidden md:inline">Mode: {viewMode === ViewMode.LIST ? 'Grid' : 'List'}</span>
-                    </motion.button>
-                )}
-            </AnimatePresence>
         </div>
 
       </div>

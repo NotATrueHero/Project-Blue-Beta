@@ -6,12 +6,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface LockScreenProps {
   onUnlock: () => void;
   targetPin: string;
+  callsign?: string;
   onReset?: () => void;
 }
 
 const PIN_LENGTH = 4;
 
-export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, targetPin, onReset }) => {
+export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, targetPin, callsign, onReset }) => {
   const [pin, setPin] = useState<string>("");
   const [error, setError] = useState<boolean>(false);
   const [isExiting, setIsExiting] = useState<boolean>(false);
@@ -60,9 +61,13 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, targetPin, onR
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-2xl font-bold mb-10 tracking-[4px] uppercase"
+            className="text-center"
           >
-            Enter Passcode
+              <div className="text-2xl font-bold mb-2 tracking-[4px] uppercase">
+                {callsign ? `Welcome, ${callsign}` : 'Enter Passcode'}
+              </div>
+              {callsign && <div className="text-xs font-mono opacity-50 uppercase tracking-widest mb-10">Identity Verification Required</div>}
+              {!callsign && <div className="mb-10" />}
           </motion.div>
 
           <motion.div
