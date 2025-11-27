@@ -7,10 +7,10 @@ import { ViewMode, ToolItem } from '../types';
 import { LayoutGrid, List } from 'lucide-react';
 
 const tools: ToolItem[] = [
-  { id: '1', number: '01 / System', category: 'Notes', title: 'Notes', description: 'Access classified logs, personal entries, and daily observations.', path: '/notes', imageText: 'NOTES UI' },
-  { id: '2', number: '02 / System', category: 'Tasks', title: 'Tasks', description: 'Manage mission objectives and daily operations with real-time tracking.', path: '/tasks', imageText: 'TASK LOG' },
-  { id: '3', number: '03 / AI', category: 'Oracle', title: 'Oracle', description: 'Secure channel to the Project Blue artificial intelligence core.', path: '/oracle', imageText: 'AI CORE' },
-  { id: '4', number: '04 / Network', category: 'Web', title: 'Uplink', description: 'Stored coordinates for external network navigation and quick access.', path: '/uplink', imageText: 'NET BRIDGE' },
+  { id: '4', number: '01 / Network', category: 'Web', title: 'Uplink', description: 'Stored coordinates for external network navigation and quick access.', path: '/uplink', imageText: 'NET BRIDGE' },
+  { id: '1', number: '02 / System', category: 'Notes', title: 'Notes', description: 'Access classified logs, personal entries, and daily observations.', path: '/notes', imageText: 'NOTES UI' },
+  { id: '2', number: '03 / System', category: 'Tasks', title: 'Tasks', description: 'Manage mission objectives and daily operations with real-time tracking.', path: '/tasks', imageText: 'TASK LOG' },
+  { id: '3', number: '04 / AI', category: 'Oracle', title: 'Oracle', description: 'Secure channel to the Project Blue artificial intelligence core.', path: '/oracle', imageText: 'AI CORE' },
   { id: '5', number: '05 / Storage', category: 'Files', title: 'Intel', description: 'Secure vault for encoding and storing classified schematics.', path: '/files', imageText: 'VAULT' },
   { id: '6', number: '06 / System', category: 'Config', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP' },
 ];
