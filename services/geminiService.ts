@@ -5,7 +5,7 @@ import { GoogleGenerativeAI, ChatSession } from "@google/generative-ai";
 export const getApiKey = (): string | undefined => {
   // 1. Check Local Storage (User configured)
   const localKey = localStorage.getItem('blue_api_key');
-  if (localKey) return localKey;
+  if (localKey && localKey.trim().length > 0) return localKey.trim();
 
   // 2. Check Environment Variables (Build time)
   try {
@@ -13,7 +13,7 @@ export const getApiKey = (): string | undefined => {
     // @ts-ignore
     if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
       // @ts-ignore
-      return process.env.API_KEY;
+      return process.env.API_KEY.trim();
     }
   } catch (e) {
     // Ignore ReferenceError
@@ -27,9 +27,9 @@ export const createOracleChat = (): ChatSession | null => {
 
   try {
     const genAI = new GoogleGenerativeAI(key);
-    // Using gemini-1.5-flash as it is the most stable model for this SDK version
+    // Updated to gemini-2.5-flash for better performance and stability
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         systemInstruction: 'You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone. Keep answers brief. Do not output internal thought traces or reasoning steps.',
     });
     
@@ -52,6 +52,7 @@ export const sendMessageToOracle = async (chat: ChatSession, message: string): P
     return response.text();
   } catch (error) {
     console.error("Oracle Connection Failure:", error);
-    return "Connection Lost. Secure channel unavailable.";
+    // Return the actual error message if safe, or a generic one
+    return `ERR: Connection Lost. Server responded with: ${error instanceof Error ? error.message : 'Unknown Error'}`;
   }
 };

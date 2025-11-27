@@ -1,3 +1,4 @@
+
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from '../components/Layout';
@@ -25,18 +26,23 @@ export const Dashboard: React.FC = () => {
   const [showToggle, setShowToggle] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (!containerRef.current || !heroRef.current) return;
-      const heroRect = heroRef.current.getBoundingClientRect();
-      setShowToggle(heroRect.bottom < 100);
-    };
+    // Use IntersectionObserver for robust visibility detection
+    const observer = new IntersectionObserver(
+        ([entry]) => {
+            // If Hero is NOT intersecting (scrolled past), show the toggle
+            setShowToggle(!entry.isIntersecting);
+        },
+        {
+            root: containerRef.current,
+            threshold: 0.1 // Trigger when 10% of hero is visible
+        }
+    );
 
-    const container = containerRef.current;
-    if (container) {
-        container.addEventListener('scroll', handleScroll);
-        handleScroll();
+    if (heroRef.current) {
+        observer.observe(heroRef.current);
     }
-    return () => container?.removeEventListener('scroll', handleScroll);
+
+    return () => observer.disconnect();
   }, []);
 
   const toggleView = () => {
@@ -59,7 +65,7 @@ export const Dashboard: React.FC = () => {
 
       <div 
         ref={containerRef}
-        className={`w-full h-full overflow-x-hidden ${viewMode === ViewMode.LIST ? 'overflow-y-scroll snap-y snap-mandatory scroll-smooth' : 'overflow-y-auto'}`}
+        className={`w-full h-full overflow-x-hidden hide-scrollbar ${viewMode === ViewMode.LIST ? 'overflow-y-scroll snap-y snap-mandatory scroll-smooth' : 'overflow-y-auto'}`}
       >
         {/* HERO */}
         <section 
