@@ -15,6 +15,7 @@ import { Music } from './pages/Music';
 import { Chronos } from './pages/Chronos';
 import { Cipher } from './pages/Cipher';
 import { Whiteboard } from './pages/Whiteboard';
+import { Games } from './pages/Games';
 import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition } from './types';
 
 const App: React.FC = () => {
@@ -383,6 +384,8 @@ const App: React.FC = () => {
       content = <Cipher />;
   } else if (pathname === '/whiteboard') {
       content = <Whiteboard />;
+  } else if (pathname === '/games') {
+      content = <Games />;
   }
   else if (pathname === '/config') {
       content = <Config 

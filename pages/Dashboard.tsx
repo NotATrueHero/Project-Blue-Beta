@@ -16,7 +16,8 @@ const tools: ToolItem[] = [
   { id: 'whiteboard', number: '07 / Tac-Ops', category: 'Canvas', title: 'Whiteboard', description: 'Tactical diagramming surface. Capture schematics directly to the vault.', path: '/whiteboard', imageText: 'DIAGRAM' },
   { id: 'files', number: '08 / Storage', category: 'Files', title: 'Intel', description: 'Secure vault for encoding and storing classified schematics.', path: '/files', imageText: 'VAULT' },
   { id: 'cipher', number: '09 / Security', category: 'Crypto', title: 'Cipher', description: 'Cryptographic translation engine for secure message encoding.', path: '/cipher', imageText: 'ENCRYPT' },
-  { id: 'config', number: '10 / System', category: 'Config', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP' },
+  { id: 'games', number: '10 / Sim', category: 'Games', title: 'Games', description: 'Cognitive training simulations and probability engines.', path: '/games', imageText: 'SIMULATE' },
+  { id: 'config', number: '11 / System', category: 'Config', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP' },
 ];
 
 interface DashboardProps {
