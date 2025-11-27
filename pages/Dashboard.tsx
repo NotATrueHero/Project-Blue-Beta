@@ -61,16 +61,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect 
                 initial={{ opacity: 0, scale: 0.95 }} 
                 animate={{ opacity: 1, scale: 1 }} 
                 transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-                className="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24 w-[90%] max-w-6xl"
+                className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-24 w-[90%] max-w-6xl mt-16 md:mt-0"
             >
                 <div className="flex flex-col text-center md:text-left z-10">
-                    <span className="font-bold uppercase leading-[0.9] text-[clamp(40px,8vw,100px)] tracking-tighter mix-blend-overlay">Project</span>
-                    <span className="font-bold uppercase leading-[0.9] text-[clamp(40px,8vw,100px)] tracking-tighter">Blue Beta</span>
+                    <span className="font-bold uppercase leading-[0.9] text-[clamp(32px,10vw,100px)] tracking-tighter mix-blend-overlay">Project</span>
+                    <span className="font-bold uppercase leading-[0.9] text-[clamp(32px,10vw,100px)] tracking-tighter">Blue Beta</span>
                 </div>
 
                 <div className="flex flex-col items-center group cursor-default">
-                    <div className="text-[40px] font-bold uppercase mb-2 tracking-[0.2em] group-hover:tracking-[0.5em] transition-all duration-500">EXIT</div>
-                    <div className="relative h-[250px] w-[200px] md:h-[350px] md:w-[300px] flex items-center justify-center overflow-hidden">
+                    <div className="text-[24px] md:text-[40px] font-bold uppercase mb-2 tracking-[0.2em] group-hover:tracking-[0.5em] transition-all duration-500">EXIT</div>
+                    <div className="relative h-[200px] w-[150px] md:h-[350px] md:w-[300px] flex items-center justify-center overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-white/90 z-10" />
                         <img 
                             src="https://upload.wikimedia.org/wikipedia/commons/3/32/Runner_stickman.png" 
@@ -87,7 +87,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 0.5 }}
                         exit={{ opacity: 0 }}
-                        className="absolute bottom-10 left-1/2 -translate-x-1/2 text-xs font-bold uppercase tracking-[0.3em] animate-pulse pointer-events-none"
+                        className="absolute bottom-24 md:bottom-10 left-1/2 -translate-x-1/2 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] animate-pulse pointer-events-none whitespace-nowrap"
                     >
                         Scroll to Unlock Tools
                     </motion.div>
@@ -96,7 +96,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect 
         </section>
 
         {/* TOOLS */}
-        <div className={`transition-all duration-700 ease-in-out w-full ${viewMode === ViewMode.GRID ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-6 pb-24 max-w-7xl mx-auto' : ''}`}>
+        <div className={`transition-all duration-700 ease-in-out w-full ${viewMode === ViewMode.GRID ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 md:gap-8 md:px-6 pb-24 max-w-7xl mx-auto' : ''}`}>
             {tools.map((tool, index) => (
                 <ToolCard key={tool.id} tool={tool} mode={viewMode} index={index} />
             ))}
@@ -111,22 +111,22 @@ const ToolCard: React.FC<{ tool: ToolItem; mode: ViewMode; index: number }> = ({
         <section 
             className={`transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col justify-center relative
             ${mode === ViewMode.LIST 
-                ? 'w-full h-screen snap-start border-b border-white/10 items-center py-20' 
-                : 'w-full h-auto min-h-[400px] border-4 border-white p-8 hover:-translate-y-2 hover:bg-white hover:text-black group cursor-pointer hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)]'
+                ? 'w-full h-screen snap-start border-b border-white/10 items-center py-20 px-4' 
+                : 'w-full h-auto min-h-[300px] md:min-h-[400px] border-4 border-white p-6 md:p-8 hover:-translate-y-2 hover:bg-white hover:text-black group cursor-pointer hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)]'
             }`}
         >
-            <div className={`flex items-center justify-between gap-12 max-w-6xl w-[90%] transition-all duration-700 ${mode === ViewMode.GRID ? 'flex-col-reverse w-full gap-6' : 'flex-col-reverse md:flex-row'}`}>
+            <div className={`flex items-center justify-between gap-8 md:gap-12 max-w-6xl w-[90%] transition-all duration-700 ${mode === ViewMode.GRID ? 'flex-col-reverse w-full gap-6' : 'flex-col-reverse md:flex-row'}`}>
                 <div className={`flex-1 flex flex-col ${mode === ViewMode.GRID ? 'items-center text-center' : 'items-center md:items-start md:text-left text-center'}`}>
-                    <div className="font-bold uppercase tracking-widest opacity-60 mb-4">{tool.number}</div>
-                    <h2 className={`font-bold uppercase leading-none mb-6 transition-all duration-500 ${mode === ViewMode.GRID ? 'text-[32px]' : 'text-[clamp(40px,5vw,80px)]'}`}>
+                    <div className="font-bold uppercase tracking-widest opacity-60 mb-2 md:mb-4 text-xs md:text-base">{tool.number}</div>
+                    <h2 className={`font-bold uppercase leading-none mb-4 md:mb-6 transition-all duration-500 ${mode === ViewMode.GRID ? 'text-[24px] md:text-[32px]' : 'text-[clamp(32px,5vw,80px)]'}`}>
                         {tool.title}
                     </h2>
-                    <p className={`font-light opacity-90 leading-relaxed mb-10 max-w-[400px] ${mode === ViewMode.GRID ? 'text-sm' : 'text-lg'}`}>
+                    <p className={`font-light opacity-90 leading-relaxed mb-6 md:mb-10 max-w-[400px] ${mode === ViewMode.GRID ? 'text-xs md:text-sm' : 'text-sm md:text-lg'}`}>
                         {tool.description}
                     </p>
                     <Link 
                         to={tool.path}
-                        className={`inline-block border-2 border-white px-8 py-3 font-bold uppercase text-sm tracking-widest transition-all duration-300 ${mode === ViewMode.GRID ? 'border-current' : 'border-white hover:bg-white hover:text-blue-base'}`}
+                        className={`inline-block border-2 border-white px-6 py-2 md:px-8 md:py-3 font-bold uppercase text-xs md:text-sm tracking-widest transition-all duration-300 ${mode === ViewMode.GRID ? 'border-current' : 'border-white hover:bg-white hover:text-blue-base'}`}
                     >
                         Launch System
                     </Link>
@@ -134,10 +134,10 @@ const ToolCard: React.FC<{ tool: ToolItem; mode: ViewMode; index: number }> = ({
 
                 <div className={`flex-1 flex justify-center items-center ${mode === ViewMode.GRID ? 'w-full' : ''}`}>
                     <div 
-                        className={`border-4 border-white flex items-center justify-center font-bold text-2xl uppercase tracking-widest transition-all duration-500
+                        className={`border-4 border-white flex items-center justify-center font-bold uppercase tracking-widest transition-all duration-500
                         ${mode === ViewMode.GRID 
-                            ? 'w-full aspect-video border-current' 
-                            : 'w-[90%] max-w-[500px] aspect-[3/2] shadow-[20px_20px_0px_rgba(255,255,255,0.2)] hover:shadow-[10px_10px_0px_rgba(255,255,255,0.4)]'
+                            ? 'w-full aspect-video border-current text-lg md:text-2xl' 
+                            : 'w-[90%] max-w-[500px] aspect-[3/2] shadow-[10px_10px_0px_rgba(255,255,255,0.2)] md:shadow-[20px_20px_0px_rgba(255,255,255,0.2)] hover:shadow-[10px_10px_0px_rgba(255,255,255,0.4)] text-lg md:text-2xl'
                         }`}
                     >
                        {tool.imageText}

@@ -76,43 +76,43 @@ export const Layout: React.FC<LayoutProps> = ({
       )}
 
       {/* Global Header / Nav */}
-      <div className="fixed top-0 left-0 w-full z-40 p-6 md:p-8 flex justify-between items-start pointer-events-none">
+      <div className="fixed top-0 left-0 w-full z-40 p-4 md:p-8 flex justify-between items-start pointer-events-none">
         
         {/* Left Side: Back Button & System Status */}
         <div className="pointer-events-auto flex items-center">
             <AnimatePresence>
                 {!isHome && (
                     <motion.button 
-                        initial={{ opacity: 0, x: -20, width: 0, marginRight: 0 }}
-                        animate={{ opacity: 1, x: 0, width: 'auto', marginRight: 24 }}
-                        exit={{ opacity: 0, x: -20, width: 0, marginRight: 0 }}
+                        initial={{ opacity: 0, x: -10, width: 0, marginRight: 0 }}
+                        animate={{ opacity: 1, x: 0, width: 'auto', marginRight: 12 }}
+                        exit={{ opacity: 0, x: -10, width: 0, marginRight: 0 }}
                         transition={{ duration: 0.3, ease: "easeOut" }}
                         onClick={() => navigate('/')}
-                        className={`group flex items-center gap-2 font-bold uppercase tracking-widest text-sm hover:opacity-75 transition-opacity px-4 py-2 border border-white/20 rounded-full md:bg-transparent md:border-none md:p-0 md:rounded-none whitespace-nowrap overflow-hidden backdrop-blur-sm ${accentClass} md:bg-transparent`}
+                        className={`group flex items-center gap-2 font-bold uppercase tracking-widest text-xs md:text-sm hover:opacity-75 transition-opacity px-3 py-2 border border-white/20 rounded-full md:bg-transparent md:border-none md:p-0 md:rounded-none whitespace-nowrap overflow-hidden backdrop-blur-sm ${accentClass} md:bg-transparent`}
                     >
-                        <ArrowLeft className="w-5 h-5" />
-                        <span>Back</span>
+                        <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
+                        <span className="hidden md:inline">Back</span>
                     </motion.button>
                 )}
             </AnimatePresence>
           
             {/* System Status */}
             <motion.div layout className="text-left flex flex-col justify-center">
-                <div className="text-[10px] md:text-xs font-bold opacity-50 tracking-widest uppercase mb-1 leading-none">
+                <div className="text-[9px] md:text-xs font-bold opacity-50 tracking-widest uppercase mb-0.5 md:mb-1 leading-none">
                     {callsign ? callsign : 'System Status'}
                 </div>
-                <div className={`flex items-center gap-2 backdrop-blur-sm py-1 px-3 rounded-full md:bg-transparent md:p-0 ${accentClass} md:bg-transparent`}>
+                <div className={`flex items-center gap-2 backdrop-blur-sm py-1 px-2 md:px-3 rounded-full md:bg-transparent md:p-0 ${accentClass} md:bg-transparent`}>
                     <div className="relative flex items-center justify-center">
-                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse relative z-10"></div>
-                        <div className="w-2 h-2 rounded-full bg-green-400 animate-ping absolute opacity-75"></div>
+                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-400 animate-pulse relative z-10"></div>
+                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-400 animate-ping absolute opacity-75"></div>
                     </div>
-                    <span className="font-bold text-sm tracking-wider text-green-300 drop-shadow-[0_0_8px_rgba(134,239,172,0.5)] leading-none">ONLINE</span>
+                    <span className="font-bold text-xs md:text-sm tracking-wider text-green-300 drop-shadow-[0_0_8px_rgba(134,239,172,0.5)] leading-none">ONLINE</span>
                 </div>
             </motion.div>
         </div>
 
         {/* Right Side: Music & View Toggle */}
-        <div className="pointer-events-auto flex items-center gap-4">
+        <div className="pointer-events-auto flex items-center gap-2 md:gap-4">
              {/* View Toggle (Grid/List) - Appears first to push music left */}
             <AnimatePresence>
                 {showViewToggle && onToggleView && viewMode && (
@@ -121,9 +121,9 @@ export const Layout: React.FC<LayoutProps> = ({
                         animate={{ opacity: 1, width: 'auto', scale: 1 }}
                         exit={{ opacity: 0, width: 0, scale: 0.8 }}
                         onClick={onToggleView}
-                        className={`flex items-center gap-2 backdrop-blur-sm border border-white/20 hover:bg-white hover:text-black hover:border-white px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors whitespace-nowrap overflow-hidden ${accentClass}`}
+                        className={`flex items-center gap-2 backdrop-blur-sm border border-white/20 hover:bg-white hover:text-black hover:border-white px-2 py-2 md:px-3 rounded-lg font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors whitespace-nowrap overflow-hidden ${accentClass}`}
                     >
-                        {viewMode === ViewMode.LIST ? <LayoutGrid size={16} /> : <List size={16} />}
+                        {viewMode === ViewMode.LIST ? <LayoutGrid size={14} className="md:w-4 md:h-4" /> : <List size={14} className="md:w-4 md:h-4" />}
                         <span className="hidden md:inline">Mode: {viewMode === ViewMode.LIST ? 'Grid' : 'List'}</span>
                     </motion.button>
                 )}
@@ -133,9 +133,9 @@ export const Layout: React.FC<LayoutProps> = ({
             <motion.button 
                 layout
                 onClick={onTogglePlay}
-                className={`group flex items-center gap-3 backdrop-blur-sm py-2 px-3 rounded-lg border border-white/10 hover:bg-white/10 transition-colors ${accentClass}`}
+                className={`group flex items-center gap-2 md:gap-3 backdrop-blur-sm py-2 px-2 md:px-3 rounded-lg border border-white/10 hover:bg-white/10 transition-colors ${accentClass}`}
             >
-                <div className="flex items-center gap-1 h-4 w-8 justify-center">
+                <div className="flex items-center gap-0.5 md:gap-1 h-3 md:h-4 w-6 md:w-8 justify-center">
                     {isPlaying ? (
                         <>
                             {[1, 2, 3, 4].map((i) => (
@@ -148,15 +148,15 @@ export const Layout: React.FC<LayoutProps> = ({
                                         ease: "easeInOut",
                                         delay: i * 0.1 
                                     }}
-                                    className="w-1 bg-white"
+                                    className="w-0.5 md:w-1 bg-white"
                                 />
                             ))}
                         </>
                     ) : (
-                         <div className="w-full h-[2px] bg-white/30" />
+                         <div className="w-full h-[1px] md:h-[2px] bg-white/30" />
                     )}
                 </div>
-                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                {isPlaying ? <Pause size={14} className="md:w-4 md:h-4" /> : <Play size={14} className="md:w-4 md:h-4" />}
             </motion.button>
         </div>
 
