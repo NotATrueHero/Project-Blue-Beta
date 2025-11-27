@@ -12,6 +12,9 @@ import { Bookmarks } from './pages/Bookmarks';
 import { Config } from './pages/Config';
 import { Files } from './pages/Files';
 import { Music } from './pages/Music';
+import { Chronos } from './pages/Chronos';
+import { Cipher } from './pages/Cipher';
+import { Whiteboard } from './pages/Whiteboard';
 import { Theme, MusicPlaylist, ViewMode, LoopMode, Track } from './types';
 
 const App: React.FC = () => {
@@ -364,6 +367,12 @@ const App: React.FC = () => {
           shuffle={shuffle}
           onToggleShuffle={toggleShuffle}
       />;
+  } else if (pathname === '/chronos') {
+      content = <Chronos />;
+  } else if (pathname === '/cipher') {
+      content = <Cipher />;
+  } else if (pathname === '/whiteboard') {
+      content = <Whiteboard />;
   }
   else if (pathname === '/config') {
       content = <Config 
@@ -384,7 +393,7 @@ const App: React.FC = () => {
   return (
     <Layout 
         theme={theme} 
-        callsign={callsign}
+        callsign={callsign} 
         crtEnabled={crtEnabled}
         isPlaying={isPlaying} 
         onTogglePlay={() => setIsPlaying(!isPlaying)}

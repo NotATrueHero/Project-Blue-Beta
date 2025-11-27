@@ -70,6 +70,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         localStorage.removeItem('blue_uplinks');
         
         localStorage.setItem('blue_files', JSON.stringify(data.files || []));
+        localStorage.setItem('blue_file_folders', JSON.stringify(data.fileFolders || [])); 
+
         localStorage.setItem('blue_theme', data.theme || 'standard');
         if (data.crtEnabled !== undefined) localStorage.setItem('blue_crt', String(data.crtEnabled));
         if (data.autoLockSeconds !== undefined) localStorage.setItem('blue_autolock', String(data.autoLockSeconds));
@@ -146,7 +148,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div 
-                className={`border-4 border-white p-8 transition-all duration-300 cursor-pointer relative group ${isHovering ? 'bg-white text-[#0047FF]' : 'bg-transparent'}`}
+                className={`border-4 border-white p-8 transition-all duration-300 cursor-pointer relative group ${isHovering ? 'bg-white text-blue-base' : 'bg-transparent'}`}
                 onDragOver={(e) => { e.preventDefault(); setIsHovering(true); }}
                 onDragLeave={() => setIsHovering(false)}
                 onDrop={(e) => {

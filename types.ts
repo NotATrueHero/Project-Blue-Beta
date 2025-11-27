@@ -46,8 +46,15 @@ export interface ToolItem {
   imageText: string;
 }
 
+export interface FileFolder {
+  id: string;
+  parentId?: string; // Added for nesting
+  name: string;
+}
+
 export interface FileItem {
   id: string;
+  folderId?: string;
   name: string;
   type: string;
   data: string;
@@ -76,10 +83,10 @@ export type LoopMode = 'off' | 'all' | 'one';
 export interface UserData {
   version: string;
   pin: string;
-  callsign?: string; // New
+  callsign?: string; 
   theme: Theme;
-  crtEnabled?: boolean; // New
-  autoLockSeconds?: number; // New (0 = never)
+  crtEnabled?: boolean; 
+  autoLockSeconds?: number;
   apiKey?: string;
   
   // Audio State
@@ -93,6 +100,7 @@ export interface UserData {
   taskLists: TaskList[];
   bookmarkCategories: BookmarkCategory[];
   files: FileItem[];
+  fileFolders: FileFolder[]; 
 }
 
 export enum ViewMode {

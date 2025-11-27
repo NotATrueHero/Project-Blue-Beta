@@ -53,6 +53,7 @@ export const Config: React.FC<ConfigProps> = ({
     const noteFolders = JSON.parse(localStorage.getItem('blue_note_folders') || '[]');
     const taskLists = JSON.parse(localStorage.getItem('blue_task_lists') || '[]');
     const files = JSON.parse(localStorage.getItem('blue_files') || '[]');
+    const fileFolders = JSON.parse(localStorage.getItem('blue_file_folders') || '[]'); // New
     const pin = localStorage.getItem('blue_pin') || '1969';
     const theme = (localStorage.getItem('blue_theme') as Theme) || 'standard';
     const storedApiKey = localStorage.getItem('blue_api_key') || undefined;
@@ -74,7 +75,8 @@ export const Config: React.FC<ConfigProps> = ({
         noteFolders,
         taskLists,
         bookmarkCategories,
-        files
+        files,
+        fileFolders
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

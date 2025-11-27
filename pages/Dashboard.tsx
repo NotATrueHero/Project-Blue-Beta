@@ -6,13 +6,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ViewMode, ToolItem } from '../types';
 
 const tools: ToolItem[] = [
-  { id: '4', number: '01 / Network', category: 'Web', title: 'Uplink', description: 'Stored coordinates for external network navigation and quick access.', path: '/uplink', imageText: 'NET BRIDGE' },
-  { id: '1', number: '02 / System', category: 'Notes', title: 'Notes', description: 'Access classified logs, personal entries, and daily observations.', path: '/notes', imageText: 'NOTES UI' },
-  { id: '2', number: '03 / System', category: 'Tasks', title: 'Tasks', description: 'Manage mission objectives and daily operations with real-time tracking.', path: '/tasks', imageText: 'TASK LOG' },
-  { id: '3', number: '04 / AI', category: 'Oracle', title: 'Oracle', description: 'Secure channel to the Project Blue artificial intelligence core.', path: '/oracle', imageText: 'AI CORE' },
-  { id: 'music', number: '05 / Media', category: 'Audio', title: 'Music', description: 'System audio player and frequency management.', path: '/music', imageText: 'AUDIO' },
-  { id: '5', number: '06 / Storage', category: 'Files', title: 'Intel', description: 'Secure vault for encoding and storing classified schematics.', path: '/files', imageText: 'VAULT' },
-  { id: '6', number: '07 / System', category: 'Config', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP' },
+  { id: 'uplink', number: '01 / Network', category: 'Web', title: 'Uplink', description: 'Stored coordinates for external network navigation and quick access.', path: '/uplink', imageText: 'NET BRIDGE' },
+  { id: 'notes', number: '02 / System', category: 'Notes', title: 'Notes', description: 'Access classified logs, personal entries, and daily observations.', path: '/notes', imageText: 'NOTES UI' },
+  { id: 'tasks', number: '03 / System', category: 'Tasks', title: 'Tasks', description: 'Manage mission objectives and daily operations with real-time tracking.', path: '/tasks', imageText: 'TASK LOG' },
+  { id: 'chronos', number: '04 / Protocol', category: 'Time', title: 'Chronos', description: 'Tactical countdown timer for operational focus intervals.', path: '/chronos', imageText: 'TIMER' },
+  { id: 'oracle', number: '05 / AI', category: 'Oracle', title: 'Oracle', description: 'Secure channel to the Project Blue artificial intelligence core.', path: '/oracle', imageText: 'AI CORE' },
+  { id: 'music', number: '06 / Media', category: 'Audio', title: 'Music', description: 'System audio player and frequency management.', path: '/music', imageText: 'AUDIO' },
+  { id: 'whiteboard', number: '07 / Tac-Ops', category: 'Canvas', title: 'Whiteboard', description: 'Tactical diagramming surface. Capture schematics directly to the vault.', path: '/whiteboard', imageText: 'DIAGRAM' },
+  { id: 'files', number: '08 / Storage', category: 'Files', title: 'Intel', description: 'Secure vault for encoding and storing classified schematics.', path: '/files', imageText: 'VAULT' },
+  { id: 'cipher', number: '09 / Security', category: 'Crypto', title: 'Cipher', description: 'Cryptographic translation engine for secure message encoding.', path: '/cipher', imageText: 'ENCRYPT' },
+  { id: 'config', number: '10 / System', category: 'Config', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP' },
 ];
 
 interface DashboardProps {
