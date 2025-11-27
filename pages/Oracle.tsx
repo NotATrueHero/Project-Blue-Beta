@@ -18,14 +18,25 @@ export const Oracle: React.FC = () => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [chatSession, setChatSession] = useState<Chat | null>(null);
+  const [apiKeyAvailable, setApiKeyAvailable] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const apiKeyAvailable = !!process.env.API_KEY;
 
   useEffect(() => {
-    if (apiKeyAvailable) {
-      setChatSession(createOracleChat());
+    // Safely check for API Key existence without crashing if process is undefined
+    let hasKey = false;
+    try {
+        // @ts-ignore
+        hasKey = typeof process !== 'undefined' && process.env && !!process.env.API_KEY;
+    } catch (e) {
+        hasKey = false;
     }
-  }, [apiKeyAvailable]);
+    setApiKeyAvailable(hasKey);
+
+    if (hasKey) {
+      const chat = createOracleChat();
+      if (chat) setChatSession(chat);
+    }
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {

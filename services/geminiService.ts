@@ -1,11 +1,29 @@
 
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 
-// Initialize the client strictly according to guidelines
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let ai: GoogleGenAI | null = null;
 
-export const createOracleChat = (): Chat => {
-  return ai.chats.create({
+const getAiClient = (): GoogleGenAI | null => {
+  if (ai) return ai;
+  
+  // Safe check for process.env to prevent crashes in browsers where process is undefined
+  try {
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      // @ts-ignore
+      ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    }
+  } catch (e) {
+    console.warn("Environment check failed during AI initialization", e);
+  }
+  return ai;
+};
+
+export const createOracleChat = (): Chat | null => {
+  const client = getAiClient();
+  if (!client) return null;
+
+  return client.chats.create({
     model: 'gemini-2.5-flash',
     config: {
       systemInstruction: 'You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone. Keep answers brief. Do not output internal thought traces or reasoning steps.',
