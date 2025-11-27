@@ -6,14 +6,12 @@ let ai: GoogleGenAI | null = null;
 // Safe accessor for API Key that prevents ReferenceError in browsers
 const getApiKey = (): string | undefined => {
   try {
-    // @ts-ignore
-    if (typeof process !== 'undefined' && process.env) {
-      // @ts-ignore
+    // Check if process exists safely (Node.js/Webpack envs)
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
       return process.env.API_KEY;
     }
   } catch (e) {
-    // Ignore ReferenceError: process is not defined
-    return undefined;
+    // Ignore ReferenceError
   }
   return undefined;
 };
