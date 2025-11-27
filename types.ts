@@ -43,6 +43,7 @@ export interface UserData {
   version: string;
   pin: string;
   theme: Theme;
+  apiKey?: string;
   notes: Note[];
   tasks: Task[];
   bookmarks: Bookmark[];

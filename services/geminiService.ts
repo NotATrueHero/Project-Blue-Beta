@@ -2,7 +2,12 @@
 import { GoogleGenerativeAI, ChatSession } from "@google/generative-ai";
 
 // Safe accessor for API Key that prevents ReferenceError in browsers
-const getApiKey = (): string | undefined => {
+export const getApiKey = (): string | undefined => {
+  // 1. Check Local Storage (User configured)
+  const localKey = localStorage.getItem('blue_api_key');
+  if (localKey) return localKey;
+
+  // 2. Check Environment Variables (Build time)
   try {
     // Check if process exists safely (Node.js/Webpack envs)
     // @ts-ignore

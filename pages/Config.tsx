@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Download, Save, Lock, AlertCircle, RefreshCw, Eye, EyeOff, Key, ExternalLink } from 'lucide-react';
 import { UserData, Theme } from '../types';
 
 interface ConfigProps {
@@ -14,10 +14,18 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
+  
+  const [apiKey, setApiKey] = useState('');
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
 
   useEffect(() => {
     setCurrentPin(localStorage.getItem('blue_pin') || '1969');
+    
+    const storedKey = localStorage.getItem('blue_api_key') || '';
+    setApiKey(storedKey);
+    setApiKeyInput(storedKey);
   }, []);
 
   const handleDownload = () => {
@@ -27,11 +35,13 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
     const files = JSON.parse(localStorage.getItem('blue_files') || '[]');
     const pin = localStorage.getItem('blue_pin') || '1969';
     const theme = (localStorage.getItem('blue_theme') as Theme) || 'standard';
+    const storedApiKey = localStorage.getItem('blue_api_key') || undefined;
 
     const data: UserData = {
         version: '2.0',
         pin,
         theme,
+        apiKey: storedApiKey,
         notes,
         tasks,
         bookmarks,
@@ -68,6 +78,14 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
     setTimeout(() => setMessage(null), 3000);
   };
 
+  const handleApiKeySave = (e: React.FormEvent) => {
+      e.preventDefault();
+      localStorage.setItem('blue_api_key', apiKeyInput.trim());
+      setApiKey(apiKeyInput.trim());
+      setMessage({ text: 'API Key Configured.', type: 'success' });
+      setTimeout(() => setMessage(null), 3000);
+  };
+
   const toggleTheme = () => {
       const newTheme = currentTheme === 'standard' ? 'stealth' : 'standard';
       onThemeChange(newTheme);
@@ -78,7 +96,7 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0 }}
-      className="w-full h-full pt-24 px-6 md:px-12 pb-12 max-w-7xl mx-auto flex flex-col gap-12"
+      className="w-full h-full pt-24 px-6 md:px-12 pb-12 max-w-7xl mx-auto flex flex-col gap-12 overflow-y-auto hide-scrollbar"
     >
       <div className="border-b-2 border-white pb-6">
         <h1 className="text-4xl md:text-6xl font-bold uppercase tracking-tighter mb-2">Config</h1>
@@ -144,11 +162,58 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
                     <RefreshCw size={16} />
                     Update PIN
                 </button>
-                {message && (
-                    <div className={`text-center text-xs font-bold uppercase tracking-widest ${message.type === 'error' ? 'text-red-300' : 'text-green-300'}`}>
-                        {message.text}
+            </form>
+        </section>
+
+        {/* AI CONFIG */}
+        <section className="border-4 border-white p-8 md:col-span-2">
+            <div className="flex items-center gap-4 mb-6">
+                <Key size={32} />
+                <h2 className="text-2xl font-bold uppercase tracking-widest">AI Core Config</h2>
+            </div>
+            
+            <p className="opacity-80 mb-6 leading-relaxed font-light">
+                Configure the connection to the Oracle (Gemini AI). A valid API key is required for the neural interface to function.
+            </p>
+
+            <form onSubmit={handleApiKeySave} className="space-y-6">
+                <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 opacity-60">Gemini API Key</label>
+                    <div className="flex gap-4">
+                        <input 
+                            type="text" 
+                            value={apiKeyInput}
+                            onChange={(e) => setApiKeyInput(e.target.value)}
+                            className="flex-1 bg-transparent border-b-2 border-white/30 focus:border-white outline-none py-2 text-lg font-mono placeholder-white/20"
+                            placeholder="AIza..."
+                        />
+                        <button 
+                            type="submit"
+                            className="shrink-0 border-2 border-white px-6 py-2 font-bold uppercase hover:bg-white hover:text-black transition-colors"
+                        >
+                            Save Key
+                        </button>
                     </div>
-                )}
+                </div>
+                
+                <div className="flex justify-between items-center text-xs uppercase tracking-widest">
+                    <div className="flex items-center gap-2">
+                         Status: 
+                         {apiKey ? (
+                             <span className="text-green-300 font-bold">Configured</span>
+                         ) : (
+                             <span className="text-red-300 font-bold">Missing</span>
+                         )}
+                    </div>
+                    <a 
+                        href="https://aistudio.google.com/app/apikey" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 hover:text-blue-300 transition-colors"
+                    >
+                        Get Key <ExternalLink size={10} />
+                    </a>
+                </div>
             </form>
         </section>
 
@@ -161,7 +226,7 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
                         <h2 className="text-2xl font-bold uppercase tracking-widest">System Backup</h2>
                     </div>
                     <p className="opacity-80 leading-relaxed font-light max-w-xl">
-                        Generate a full JSON dump of current system state, including logs, task directives, Uplink coordinates, and Vault items.
+                        Generate a full JSON dump of current system state, including logs, task directives, Uplink coordinates, AI Config, and Vault items.
                     </p>
                 </div>
                 
@@ -174,6 +239,15 @@ export const Config: React.FC<ConfigProps> = ({ currentTheme, onThemeChange }) =
                 </button>
             </div>
         </section>
+        
+        {/* Toast Message */}
+        {message && (
+             <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
+                <div className={`px-8 py-4 border-2 font-bold uppercase tracking-widest backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.5)] ${message.type === 'error' ? 'bg-red-500/20 border-red-500 text-red-100' : 'bg-green-500/20 border-green-500 text-green-100'}`}>
+                    {message.text}
+                </div>
+             </div>
+        )}
 
       </div>
     </motion.div>

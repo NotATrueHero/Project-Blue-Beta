@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Cpu, AlertTriangle } from 'lucide-react';
 import { ChatSession } from '@google/generative-ai';
-import { createOracleChat, sendMessageToOracle } from '../services/geminiService';
+import { createOracleChat, sendMessageToOracle, getApiKey } from '../services/geminiService';
 
 interface Message {
   role: 'user' | 'model';
@@ -22,18 +22,9 @@ export const Oracle: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Safe check that won't crash the browser
-    const checkEnv = () => {
-      try {
-        // @ts-ignore
-        const hasKey = typeof process !== 'undefined' && process.env && !!process.env.API_KEY;
-        return hasKey;
-      } catch (e) {
-        return false;
-      }
-    };
-
-    const hasKey = checkEnv();
+    // Check if we have a key available (Env or LocalStorage)
+    const availableKey = getApiKey();
+    const hasKey = !!availableKey;
     setApiKeyAvailable(hasKey);
 
     if (hasKey) {
@@ -78,9 +69,10 @@ export const Oracle: React.FC = () => {
                   <AlertTriangle className="w-20 h-20 mx-auto mb-8 text-yellow-400" />
                   <h2 className="text-3xl font-bold uppercase mb-4">System Offline</h2>
                   <p className="text-lg opacity-80 mb-6 font-light">Oracle module requires a secure API Key configuration.</p>
-                  <div className="inline-block border border-white/30 px-4 py-2 font-mono text-sm bg-black/40">
-                      process.env.API_KEY unavailable
+                  <div className="inline-block border border-white/30 px-4 py-2 font-mono text-sm bg-black/40 mb-4">
+                      API KEY MISSING
                   </div>
+                  <p className="text-xs uppercase tracking-widest opacity-60">Go to Config &gt; AI Core Config to set your key.</p>
               </div>
           </div>
       )
@@ -115,6 +107,7 @@ export const Oracle: React.FC = () => {
          ref={scrollRef}
          className="flex-1 border-4 border-white p-6 overflow-y-auto hide-scrollbar flex flex-col gap-6"
          style={{ 
+             backgroundColor: 'rgba(0,0,0,0.1)',
              backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', 
              backgroundSize: '40px 40px',
              backgroundAttachment: 'local'

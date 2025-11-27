@@ -32,6 +32,13 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         localStorage.setItem('blue_uplinks', JSON.stringify(data.bookmarks));
         localStorage.setItem('blue_files', JSON.stringify(data.files || []));
         localStorage.setItem('blue_theme', data.theme || 'standard');
+        
+        // Restore API Key if present
+        if (data.apiKey) {
+            localStorage.setItem('blue_api_key', data.apiKey);
+        } else {
+            localStorage.removeItem('blue_api_key');
+        }
 
         // Boot
         setTimeout(() => {
@@ -53,6 +60,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
     localStorage.removeItem('blue_uplinks');
     localStorage.removeItem('blue_files');
     localStorage.removeItem('blue_theme');
+    localStorage.removeItem('blue_api_key');
     
     // Set Default PIN
     const defaultPin = "1969";
