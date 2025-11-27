@@ -1,9 +1,10 @@
 
 import * as React from 'react';
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from '../components/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ViewMode, ToolItem } from '../types';
+import { Search } from 'lucide-react';
+import { ViewMode, ToolItem, WidgetPosition } from '../types';
 
 const tools: ToolItem[] = [
   { id: 'uplink', number: '01 / Network', category: 'Web', title: 'Uplink', description: 'Stored coordinates for external network navigation and quick access.', path: '/uplink', imageText: 'NET BRIDGE' },
@@ -21,9 +22,78 @@ const tools: ToolItem[] = [
 interface DashboardProps {
     viewMode: ViewMode;
     onHeroIntersect: (visible: boolean) => void;
+    widgetPosition: WidgetPosition;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect }) => {
+// Reusable System Widget Component
+const SystemWidget: React.FC<{ mode: 'hero' | 'card' }> = ({ mode }) => {
+    const [time, setTime] = useState(new Date());
+    const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        const timer = setInterval(() => setTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchQuery.trim()) return;
+        window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
+        setSearchQuery('');
+    };
+
+    if (mode === 'hero') {
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.8 }}
+                className="flex flex-col md:flex-row items-center gap-4 md:gap-6 mt-12 z-20 w-full max-w-xl px-6"
+            >
+                {/* CLOCK */}
+                <div className="h-14 flex items-center justify-center border-2 border-white px-6 font-mono text-xl md:text-2xl font-bold tracking-widest bg-white/5 backdrop-blur-sm whitespace-nowrap min-w-[140px]">
+                    {time.toLocaleTimeString([], { hour12: false })}
+                </div>
+
+                {/* SEARCH */}
+                <form onSubmit={handleSearch} className="flex-1 w-full h-14 flex relative group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={18} />
+                    <input 
+                        type="text" 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="NET SEARCH..."
+                        className="w-full h-full bg-white/5 backdrop-blur-sm border-2 border-white pl-12 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors"
+                    />
+                </form>
+            </motion.div>
+        );
+    }
+
+    // Card Mode
+    return (
+        <div className="w-full h-full flex flex-col justify-center gap-4">
+             <div className="flex items-center gap-4">
+                <div className="h-16 flex-1 flex items-center justify-center border-2 border-white font-mono text-xl md:text-2xl font-bold tracking-widest bg-white/5">
+                    {time.toLocaleTimeString([], { hour12: false })}
+                </div>
+             </div>
+             <form onSubmit={handleSearch} className="flex-1 w-full h-16 flex relative">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={24} />
+                <input 
+                    type="text" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="NET SEARCH..."
+                    className="w-full h-full bg-white/5 border-2 border-white pl-14 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors text-lg"
+                />
+            </form>
+        </div>
+    );
+};
+
+
+export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect, widgetPosition }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -31,14 +101,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect 
     // Use IntersectionObserver for robust visibility detection
     const observer = new IntersectionObserver(
         ([entry]) => {
-            // Report visibility back to App -> Layout
-            // If intersecting, hero is visible -> Hide Toggle
-            // If NOT intersecting, hero hidden -> Show Toggle
             onHeroIntersect(entry.isIntersecting);
         },
         {
             root: containerRef.current,
-            threshold: 0.1 // Trigger when 10% of hero is visible
+            threshold: 0.1 
         }
     );
 
@@ -58,13 +125,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect 
         {/* HERO */}
         <section 
           ref={heroRef}
-          className={`w-full relative flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] ${viewMode === ViewMode.LIST ? 'h-screen snap-start shrink-0' : 'h-[60vh] shrink-0 mb-12'}`}
+          className={`w-full relative flex flex-col items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] py-12 ${viewMode === ViewMode.LIST ? 'h-screen snap-start shrink-0' : 'min-h-[60vh] shrink-0 mb-12'}`}
         >
             <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }} 
                 animate={{ opacity: 1, scale: 1 }} 
                 transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-                className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-24 w-[90%] max-w-6xl mt-16 md:mt-0"
+                className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-24 w-[90%] max-w-6xl mt-8"
             >
                 <div className="flex flex-col text-center md:text-left z-10">
                     <span className="font-bold uppercase leading-[0.9] text-[clamp(32px,10vw,100px)] tracking-tighter mix-blend-overlay">Project</span>
@@ -83,6 +150,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect 
                     </div>
                 </div>
             </motion.div>
+
+            {/* UTILITY BAR (Hero Mode) */}
+            {widgetPosition === 'hero' && <SystemWidget mode="hero" />}
             
             <AnimatePresence>
                 {viewMode === ViewMode.LIST && (
@@ -90,7 +160,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 0.5 }}
                         exit={{ opacity: 0 }}
-                        className="absolute bottom-24 md:bottom-10 left-1/2 -translate-x-1/2 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] animate-pulse pointer-events-none whitespace-nowrap"
+                        className="absolute bottom-10 left-1/2 -translate-x-1/2 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] animate-pulse pointer-events-none whitespace-nowrap"
                     >
                         Scroll to Unlock Tools
                     </motion.div>
@@ -100,6 +170,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect 
 
         {/* TOOLS */}
         <div className={`transition-all duration-700 ease-in-out w-full ${viewMode === ViewMode.GRID ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 md:gap-8 md:px-6 pb-24 max-w-7xl mx-auto' : ''}`}>
+            
+            {/* UTILITY CARD (Tool Mode) */}
+            {widgetPosition === 'tool' && (
+                <section 
+                    className={`transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col justify-center relative
+                    ${viewMode === ViewMode.LIST 
+                        ? 'w-full h-screen snap-start border-b border-white/10 items-center py-20 px-4' 
+                        : 'w-full h-auto min-h-[300px] md:min-h-[400px] border-4 border-white p-6 md:p-8 hover:-translate-y-2 hover:bg-white hover:text-black group'
+                    }`}
+                >
+                     <div className={`flex items-center justify-between gap-8 md:gap-12 max-w-6xl w-[90%] transition-all duration-700 ${viewMode === ViewMode.GRID ? 'flex-col w-full gap-6' : 'flex-col md:flex-row'}`}>
+                        <div className={`flex-1 flex flex-col ${viewMode === ViewMode.GRID ? 'items-center text-center w-full' : 'items-center md:items-start md:text-left text-center'}`}>
+                            <div className="font-bold uppercase tracking-widest opacity-60 mb-2 md:mb-4 text-xs md:text-base">00 / Utility</div>
+                            <h2 className={`font-bold uppercase leading-none mb-4 md:mb-6 ${viewMode === ViewMode.GRID ? 'text-[24px] md:text-[32px]' : 'text-[clamp(32px,5vw,80px)]'}`}>
+                                SYSTEM
+                            </h2>
+                             <div className="w-full max-w-md">
+                                <SystemWidget mode="card" />
+                             </div>
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {tools.map((tool, index) => (
                 <ToolCard key={tool.id} tool={tool} mode={viewMode} index={index} />
             ))}

@@ -3,10 +3,19 @@ import * as React from 'react';
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Power, AlertTriangle } from 'lucide-react';
-import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark } from '../types';
+import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition } from '../types';
 
 interface BootLoaderProps {
-  onLoadComplete: (pin: string, requiresAuth: boolean, theme?: Theme, playlists?: MusicPlaylist[], callsign?: string, crtEnabled?: boolean, autoLockSeconds?: number) => void;
+  onLoadComplete: (
+      pin: string, 
+      requiresAuth: boolean, 
+      theme?: Theme, 
+      playlists?: MusicPlaylist[], 
+      callsign?: string, 
+      crtEnabled?: boolean, 
+      autoLockSeconds?: number,
+      widgetPosition?: WidgetPosition
+  ) => void;
 }
 
 export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
@@ -75,6 +84,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         localStorage.setItem('blue_theme', data.theme || 'standard');
         if (data.crtEnabled !== undefined) localStorage.setItem('blue_crt', String(data.crtEnabled));
         if (data.autoLockSeconds !== undefined) localStorage.setItem('blue_autolock', String(data.autoLockSeconds));
+        if (data.widgetPosition) localStorage.setItem('blue_widget_pos', data.widgetPosition);
         
         if (musicPlaylists.length > 0) {
             localStorage.setItem('blue_music_playlists', JSON.stringify(musicPlaylists));
@@ -99,7 +109,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
                 musicPlaylists,
                 data.callsign,
                 data.crtEnabled,
-                data.autoLockSeconds
+                data.autoLockSeconds,
+                data.widgetPosition
             );
         }, 800);
 
@@ -118,9 +129,12 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
     // Set Default PIN
     const defaultPin = "1969";
     localStorage.setItem('blue_pin', defaultPin);
+    
+    // Default Widget Position
+    localStorage.setItem('blue_widget_pos', 'tool');
 
     // Boot without auth
-    onLoadComplete(defaultPin, false, 'standard');
+    onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

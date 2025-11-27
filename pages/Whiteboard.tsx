@@ -12,7 +12,7 @@ const COLORS = [
     { id: 'yellow', hex: '#F59E0B' }, // Objective
 ];
 
-const STROKE_WIDTHS = [2, 4, 6, 8, 12, 20];
+const STROKE_WIDTHS = [2, 4, 6, 8, 12, 16, 24, 32];
 
 export const Whiteboard: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -227,7 +227,7 @@ export const Whiteboard: React.FC = () => {
             <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
                 
                 {/* Tools Sidebar */}
-                <div className="w-full md:w-20 flex flex-row md:flex-col gap-4 items-center justify-between md:justify-start border-2 border-white p-2 md:py-4 bg-black/20 shrink-0 overflow-x-auto hide-scrollbar">
+                <div className="w-full md:w-20 flex flex-row md:flex-col gap-4 items-center justify-between md:justify-start border-2 border-white p-2 md:py-4 bg-black/20 shrink-0 overflow-x-auto md:overflow-y-auto hide-scrollbar">
                     
                     {/* Brush/Eraser */}
                     <div className="flex flex-row md:flex-col gap-2 shrink-0">
@@ -267,8 +267,9 @@ export const Whiteboard: React.FC = () => {
                             <button
                                 key={s}
                                 onClick={() => setLineWidth(s)}
-                                className={`rounded-full bg-white transition-opacity ${lineWidth === s ? 'opacity-100' : 'opacity-30 hover:opacity-70'}`}
-                                style={{ width: Math.min(s + 6, 24), height: Math.min(s + 6, 24) }}
+                                className={`rounded-full bg-white transition-all ${lineWidth === s ? 'opacity-100 ring-2 ring-blue-400' : 'opacity-30 hover:opacity-70'}`}
+                                style={{ width: Math.max(8, Math.min(s, 36)), height: Math.max(8, Math.min(s, 36)) }}
+                                title={`${s}px`}
                             />
                         ))}
                     </div>

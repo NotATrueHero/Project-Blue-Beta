@@ -80,6 +80,8 @@ export interface MusicPlaylist {
 
 export type LoopMode = 'off' | 'all' | 'one';
 
+export type WidgetPosition = 'hero' | 'tool' | 'hidden';
+
 export interface UserData {
   version: string;
   pin: string;
@@ -87,6 +89,7 @@ export interface UserData {
   theme: Theme;
   crtEnabled?: boolean; 
   autoLockSeconds?: number;
+  widgetPosition?: WidgetPosition;
   apiKey?: string;
   
   // Audio State

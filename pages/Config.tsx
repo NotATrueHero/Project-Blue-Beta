@@ -2,8 +2,8 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, AlertCircle, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck } from 'lucide-react';
-import { UserData, Theme, MusicPlaylist, LoopMode, BookmarkCategory, Bookmark } from '../types';
+import { Download, Save, Lock, AlertCircle, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate } from 'lucide-react';
+import { UserData, Theme, MusicPlaylist, LoopMode, BookmarkCategory, Bookmark, WidgetPosition } from '../types';
 
 interface ConfigProps {
     currentTheme: Theme;
@@ -14,6 +14,8 @@ interface ConfigProps {
     onCrtChange: (enabled: boolean) => void;
     autoLockSeconds: number;
     onAutoLockChange: (seconds: number) => void;
+    widgetPosition: WidgetPosition;
+    onWidgetPositionChange: (pos: WidgetPosition) => void;
     musicPlaylists: MusicPlaylist[];
     audioState: {
         volume: number;
@@ -27,6 +29,7 @@ export const Config: React.FC<ConfigProps> = ({
     callsign, onCallsignChange,
     crtEnabled, onCrtChange,
     autoLockSeconds, onAutoLockChange,
+    widgetPosition, onWidgetPositionChange,
     musicPlaylists, audioState 
 }) => {
   const [currentPin, setCurrentPin] = useState('');
@@ -53,19 +56,21 @@ export const Config: React.FC<ConfigProps> = ({
     const noteFolders = JSON.parse(localStorage.getItem('blue_note_folders') || '[]');
     const taskLists = JSON.parse(localStorage.getItem('blue_task_lists') || '[]');
     const files = JSON.parse(localStorage.getItem('blue_files') || '[]');
-    const fileFolders = JSON.parse(localStorage.getItem('blue_file_folders') || '[]'); // New
+    const fileFolders = JSON.parse(localStorage.getItem('blue_file_folders') || '[]'); 
     const pin = localStorage.getItem('blue_pin') || '1969';
     const theme = (localStorage.getItem('blue_theme') as Theme) || 'standard';
+    const widgetPos = (localStorage.getItem('blue_widget_pos') as WidgetPosition) || 'tool';
     const storedApiKey = localStorage.getItem('blue_api_key') || undefined;
     const bookmarkCategories = JSON.parse(localStorage.getItem('blue_uplink_categories') || '[]');
 
     const data: UserData = {
-        version: '2.4',
+        version: '2.5',
         pin,
         theme,
         callsign,
         crtEnabled,
         autoLockSeconds,
+        widgetPosition: widgetPos,
         apiKey: storedApiKey,
         musicPlaylists,
         volume: audioState.volume,
@@ -194,6 +199,27 @@ export const Config: React.FC<ConfigProps> = ({
                     <button onClick={toggleTheme} className="border border-white px-4 py-1 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all">
                         {currentTheme === 'standard' ? 'Switch Stealth' : 'Switch Standard'}
                     </button>
+                </div>
+
+                {/* Widget Position */}
+                <div>
+                     <div className="font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+                         <LayoutTemplate size={16} /> System Widget
+                     </div>
+                     <div className="grid grid-cols-3 gap-2">
+                        {(['tool', 'hero', 'hidden'] as WidgetPosition[]).map(pos => (
+                            <button
+                                key={pos}
+                                onClick={() => onWidgetPositionChange(pos)}
+                                className={`border border-white py-2 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all ${widgetPosition === pos ? 'bg-white text-black' : 'text-white'}`}
+                            >
+                                {pos === 'hero' ? 'Splash' : pos === 'tool' ? 'Tool Grid' : 'Hidden'}
+                            </button>
+                        ))}
+                     </div>
+                     <div className="text-[10px] opacity-60 mt-1 uppercase tracking-wider">
+                         Controls placement of Clock & Search
+                     </div>
                 </div>
 
                 {/* CRT Toggle */}

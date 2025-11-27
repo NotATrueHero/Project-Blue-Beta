@@ -15,7 +15,7 @@ import { Music } from './pages/Music';
 import { Chronos } from './pages/Chronos';
 import { Cipher } from './pages/Cipher';
 import { Whiteboard } from './pages/Whiteboard';
-import { Theme, MusicPlaylist, ViewMode, LoopMode, Track } from './types';
+import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition } from './types';
 
 const App: React.FC = () => {
   const [bootStatus, setBootStatus] = useState<'booting' | 'locked' | 'unlocked'>('booting');
@@ -26,6 +26,7 @@ const App: React.FC = () => {
   const [callsign, setCallsign] = useState<string>('');
   const [crtEnabled, setCrtEnabled] = useState<boolean>(false);
   const [autoLockSeconds, setAutoLockSeconds] = useState<number>(0);
+  const [widgetPosition, setWidgetPosition] = useState<WidgetPosition>('tool');
 
   const { pathname } = useLocation();
 
@@ -59,6 +60,7 @@ const App: React.FC = () => {
     const cachedCallsign = localStorage.getItem('blue_callsign');
     const cachedCrt = localStorage.getItem('blue_crt');
     const cachedAutoLock = localStorage.getItem('blue_autolock');
+    const cachedWidgetPos = localStorage.getItem('blue_widget_pos') as WidgetPosition;
 
     if (cachedPin) {
       setSessionPin(cachedPin);
@@ -66,6 +68,7 @@ const App: React.FC = () => {
       if (cachedCallsign) setCallsign(cachedCallsign);
       if (cachedCrt) setCrtEnabled(cachedCrt === 'true');
       if (cachedAutoLock) setAutoLockSeconds(parseInt(cachedAutoLock));
+      if (cachedWidgetPos) setWidgetPosition(cachedWidgetPos);
       
       setBootStatus('locked');
     }
@@ -294,7 +297,8 @@ const App: React.FC = () => {
       loadedPlaylists?: MusicPlaylist[],
       loadedCallsign?: string,
       loadedCrt?: boolean,
-      loadedAutoLock?: number
+      loadedAutoLock?: number,
+      loadedWidgetPos?: WidgetPosition
   ) => {
     setSessionPin(pin);
     if (loadedTheme) setTheme(loadedTheme);
@@ -302,6 +306,7 @@ const App: React.FC = () => {
     if (loadedCallsign) setCallsign(loadedCallsign);
     if (loadedCrt !== undefined) setCrtEnabled(loadedCrt);
     if (loadedAutoLock !== undefined) setAutoLockSeconds(loadedAutoLock);
+    if (loadedWidgetPos) setWidgetPosition(loadedWidgetPos);
     
     setBootStatus(requiresAuth ? 'locked' : 'unlocked');
   };
@@ -328,6 +333,11 @@ const App: React.FC = () => {
   const updateAutoLock = (seconds: number) => {
       setAutoLockSeconds(seconds);
       localStorage.setItem('blue_autolock', String(seconds));
+  };
+
+  const updateWidgetPosition = (pos: WidgetPosition) => {
+      setWidgetPosition(pos);
+      localStorage.setItem('blue_widget_pos', pos);
   };
 
   if (bootStatus === 'booting') {
@@ -384,11 +394,13 @@ const App: React.FC = () => {
           onCrtChange={updateCrt}
           autoLockSeconds={autoLockSeconds}
           onAutoLockChange={updateAutoLock}
+          widgetPosition={widgetPosition}
+          onWidgetPositionChange={updateWidgetPosition}
           musicPlaylists={playlists} 
           audioState={{ volume, loopMode, shuffle }} 
       />;
   }
-  else content = <Dashboard viewMode={viewMode} onHeroIntersect={(visible) => setShowViewToggle(!visible)} />;
+  else content = <Dashboard viewMode={viewMode} onHeroIntersect={(visible) => setShowViewToggle(!visible)} widgetPosition={widgetPosition} />;
 
   return (
     <Layout 
