@@ -1,17 +1,21 @@
 
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Plus, Trash2, Save, Folder, FolderPlus, GripVertical, ChevronRight } from 'lucide-react';
-import { Note, NoteFolder } from '../types';
+import { Plus, Trash2, Save, Folder, FolderPlus, GripVertical, ChevronRight, Eye, Edit3, FileText, Download, HardDrive, Hash, List, Type, Bold, Italic } from 'lucide-react';
+import { Note, NoteFolder, FileItem } from '../types';
 
 export const Notes: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [folders, setFolders] = useState<NoteFolder[]>([]);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
-  const [activeFolderId, setActiveFolderId] = useState<string | null>(null); // null = All Notes
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
   const [isAddingFolder, setIsAddingFolder] = useState(false);
+  
+  // Markdown State
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
+  const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
     const savedNotes = localStorage.getItem('blue_notes');
@@ -41,7 +45,6 @@ export const Notes: React.FC = () => {
 
   const deleteFolder = (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      // Move notes in this folder back to "All Notes" (undefined folderId)
       const updatedNotes = notes.map(n => n.folderId === id ? { ...n, folderId: undefined } : n);
       saveNotes(updatedNotes);
       saveFolders(folders.filter(f => f.id !== id));
@@ -51,13 +54,14 @@ export const Notes: React.FC = () => {
   const createNote = () => {
     const newNote: Note = {
       id: Date.now().toString(),
-      title: 'New Entry',
-      content: '',
+      title: 'Untitled Protocol',
+      content: '# New Entry\n\nBegin secure log...',
       date: new Date().toLocaleDateString(),
       folderId: activeFolderId || undefined
     };
     saveNotes([newNote, ...notes]);
     setActiveNote(newNote);
+    setViewMode('edit');
   };
 
   const deleteNote = (e: React.MouseEvent, id: string) => {
@@ -75,6 +79,211 @@ export const Notes: React.FC = () => {
     saveNotes(updatedList);
   };
 
+  // --- ACTIONS ---
+  const downloadNote = () => {
+      if (!activeNote) return;
+      const blob = new Blob([activeNote.content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${activeNote.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showNotification("DOWNLOAD COMPLETE");
+  };
+
+  const uploadToVault = () => {
+      if (!activeNote) return;
+      
+      const fileData = btoa(unescape(encodeURIComponent(activeNote.content))); // Simple base64 for text
+      const newFile: FileItem = {
+          id: Date.now().toString(),
+          name: `${activeNote.title}.md`,
+          type: 'text/markdown',
+          data: `data:text/markdown;base64,${fileData}`, // Add data URI prefix for consistency
+          size: activeNote.content.length,
+          date: new Date().toLocaleDateString(),
+          folderId: undefined
+      };
+
+      const existingFiles = JSON.parse(localStorage.getItem('blue_files') || '[]');
+      // Check quota
+      if (JSON.stringify([...existingFiles, newFile]).length > 4.5 * 1024 * 1024) {
+          showNotification("VAULT FULL: CANNOT UPLOAD");
+          return;
+      }
+
+      localStorage.setItem('blue_files', JSON.stringify([...existingFiles, newFile]));
+      showNotification("ENCRYPTED TO VAULT");
+  };
+
+  const showNotification = (msg: string) => {
+      setNotification(msg);
+      setTimeout(() => setNotification(null), 2000);
+  };
+
+  const insertText = (before: string, after: string = '') => {
+      const textarea = document.getElementById('note-editor') as HTMLTextAreaElement;
+      if (!textarea || !activeNote) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = activeNote.content;
+      const selection = text.substring(start, end);
+      
+      const newText = text.substring(0, start) + before + selection + after + text.substring(end);
+      updateActiveNote('content', newText);
+      
+      // Restore focus/cursor next tick
+      setTimeout(() => {
+          textarea.focus();
+          textarea.setSelectionRange(start + before.length, end + before.length);
+      }, 0);
+  };
+
+  // --- MARKDOWN RENDERER ---
+  const handleWikiLink = (linkName: string) => {
+      const target = notes.find(n => n.title.toLowerCase() === linkName.toLowerCase());
+      if (target) {
+          setActiveNote(target);
+          setViewMode('preview'); // Stay in preview when following links
+      } else {
+          showNotification(`LINK NOT FOUND: ${linkName}`);
+      }
+  };
+
+  const renderMarkdown = (text: string) => {
+      if (!text) return null;
+
+      // 1. Split by newlines to handle blocks
+      const lines = text.split('\n');
+      const rendered: React.ReactNode[] = [];
+      
+      let inCodeBlock = false;
+      
+      lines.forEach((line, idx) => {
+          // Code Block
+          if (line.trim().startsWith('```')) {
+              inCodeBlock = !inCodeBlock;
+              return; // Skip the marker line
+          }
+          if (inCodeBlock) {
+              rendered.push(<div key={idx} className="font-mono text-xs bg-black/40 text-green-400 p-1 pl-4 border-l-2 border-green-500/50">{line}</div>);
+              return;
+          }
+
+          // Headers
+          if (line.startsWith('# ')) {
+              rendered.push(<h1 key={idx} className="text-3xl font-bold mt-6 mb-4 border-b border-white/20 pb-2 uppercase tracking-tighter">{processInline(line.slice(2))}</h1>);
+              return;
+          }
+          if (line.startsWith('## ')) {
+              rendered.push(<h2 key={idx} className="text-2xl font-bold mt-5 mb-3 text-blue-200 uppercase tracking-wide">{processInline(line.slice(3))}</h2>);
+              return;
+          }
+          if (line.startsWith('### ')) {
+              rendered.push(<h3 key={idx} className="text-xl font-bold mt-4 mb-2 text-blue-300">{processInline(line.slice(4))}</h3>);
+              return;
+          }
+
+          // Blockquote
+          if (line.startsWith('> ')) {
+              rendered.push(<blockquote key={idx} className="border-l-4 border-white/50 pl-4 py-2 my-2 italic bg-white/5">{processInline(line.slice(2))}</blockquote>);
+              return;
+          }
+
+          // Lists
+          if (line.trim().startsWith('- ')) {
+              rendered.push(<li key={idx} className="ml-6 list-disc marker:text-blue-400 pl-1 my-1">{processInline(line.replace('- ', ''))}</li>);
+              return;
+          }
+
+          // Paragraph (default)
+          if (line.trim() === '') {
+              rendered.push(<div key={idx} className="h-4" />);
+          } else {
+              rendered.push(<p key={idx} className="leading-relaxed mb-1">{processInline(line)}</p>);
+          }
+      });
+
+      return rendered;
+  };
+
+  const processInline = (text: string): React.ReactNode[] => {
+      // Regex for Bold, Italic, WikiLinks
+      // Need to split by tokens and map
+      // This is a simplified parser
+      const parts: React.ReactNode[] = [];
+      
+      // Helper to push text
+      const pushText = (t: string) => parts.push(t);
+
+      // We'll process WikiLinks [[Link]] first as they are most complex
+      const wikiRegex = /\[\[(.*?)\]\]/g;
+      let lastIndex = 0;
+      let match;
+
+      while ((match = wikiRegex.exec(text)) !== null) {
+          // Text before link
+          if (match.index > lastIndex) {
+              parts.push(...processFormatting(text.substring(lastIndex, match.index)));
+          }
+          
+          // The Link
+          const linkText = match[1];
+          parts.push(
+              <span 
+                key={`wiki-${match.index}`} 
+                onClick={() => handleWikiLink(linkText)}
+                className="text-[#a78bfa] font-bold cursor-pointer hover:underline bg-[#a78bfa]/10 px-1 rounded"
+              >
+                  {linkText}
+              </span>
+          );
+          
+          lastIndex = wikiRegex.lastIndex;
+      }
+      
+      if (lastIndex < text.length) {
+          parts.push(...processFormatting(text.substring(lastIndex)));
+      }
+
+      return parts;
+  };
+
+  const processFormatting = (text: string): React.ReactNode[] => {
+      // Bold **text**
+      const parts: React.ReactNode[] = [];
+      const boldRegex = /\*\*(.*?)\*\*/g;
+      let lastIndex = 0;
+      let match;
+
+      while ((match = boldRegex.exec(text)) !== null) {
+          if (match.index > lastIndex) parts.push(processItalic(text.substring(lastIndex, match.index)));
+          parts.push(<strong key={`b-${match.index}`} className="font-bold text-white">{match[1]}</strong>);
+          lastIndex = boldRegex.lastIndex;
+      }
+      if (lastIndex < text.length) parts.push(processItalic(text.substring(lastIndex)));
+      return parts;
+  };
+
+  const processItalic = (text: string): React.ReactNode => {
+      // Simple logic: returns array or string
+      const parts: React.ReactNode[] = [];
+      const regex = /\*(.*?)\*/g;
+      let lastIndex = 0;
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+          if (match.index > lastIndex) parts.push(text.substring(lastIndex, match.index));
+          parts.push(<em key={`i-${match.index}`} className="italic text-blue-200">{match[1]}</em>);
+          lastIndex = regex.lastIndex;
+      }
+      if (lastIndex < text.length) parts.push(text.substring(lastIndex));
+      return parts;
+  };
+
   const filteredNotes = activeFolderId 
       ? notes.filter(n => n.folderId === activeFolderId) 
       : notes;
@@ -87,7 +296,7 @@ export const Notes: React.FC = () => {
       className="w-full h-full pt-24 px-4 md:px-12 pb-12 flex flex-col md:flex-row gap-8 max-w-7xl mx-auto"
     >
       {/* Sidebar */}
-      <div className="w-full md:w-1/3 h-[500px] md:h-full border-4 border-white p-4 flex flex-col gap-6">
+      <div className="w-full md:w-1/3 h-[300px] md:h-full border-4 border-white p-4 flex flex-col gap-6 bg-black/20">
         
         {/* Folders Section */}
         <div className="flex flex-col gap-2 pb-4 border-b-2 border-white/20">
@@ -138,59 +347,45 @@ export const Notes: React.FC = () => {
         {/* Notes List */}
         <div className="flex-1 flex flex-col min-h-0">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold uppercase tracking-widest">
+                <h2 className="text-xl font-bold uppercase tracking-widest truncate">
                     {activeFolderId ? folders.find(f => f.id === activeFolderId)?.name : 'All Logs'}
                 </h2>
-                <button onClick={createNote} className="p-2 border-2 border-white hover:bg-white hover:text-black transition-colors">
+                <button onClick={createNote} className="p-2 border-2 border-white hover:bg-white hover:text-black transition-colors" title="New Entry">
                     <Plus size={16} />
                 </button>
             </div>
             
             <div className="flex-1 overflow-y-auto hide-scrollbar">
                 <Reorder.Group axis="y" values={filteredNotes} onReorder={(newOrder) => {
-                     // Since filteredNotes is a subset, we need to carefully update the main list
-                     // Ideally, we reorder the subset, then splice it back into the main list?
-                     // Simplification for UX: We just update local state. 
-                     // IMPORTANT: Reorder requires updating state immediately.
-                     // Because we are filtering, direct reorder on filtered list needs mapping back.
-                     // Strategy: Just save the new order of THESE notes, append the REST of the notes.
-                     
-                     const otherNotes = notes.filter(n => activeFolderId ? n.folderId !== activeFolderId : false);
-                     // Wait, if activeFolderId is null, filteredNotes IS notes.
                      if (!activeFolderId) {
                          saveNotes(newOrder);
                      } else {
-                         // Merging is tricky with drag reorder. 
-                         // To avoid complexity in a simple backup system, we'll only allow reordering "All Logs" for now or just visual reorder.
-                         // Actually, let's just update the list.
                          const reorderedIds = new Set(newOrder.map(n => n.id));
                          const others = notes.filter(n => !reorderedIds.has(n.id));
                          saveNotes([...newOrder, ...others]);
                      }
-                }} className="space-y-3">
+                }} className="space-y-2">
                     {filteredNotes.length === 0 && <div className="text-center opacity-40 text-xs mt-4">EMPTY DIRECTORY</div>}
                     
                     {filteredNotes.map(note => (
                         <Reorder.Item
                             key={note.id}
                             value={note}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
                             className="relative"
                         >
                             <div
                                 onClick={() => setActiveNote(note)}
-                                className={`group p-4 border-2 border-white cursor-pointer transition-all flex items-start gap-3 ${activeNote?.id === note.id ? 'bg-white text-black' : 'bg-transparent text-white hover:bg-white/10'}`}
+                                className={`group p-3 border-l-4 cursor-pointer transition-all flex items-start gap-3 hover:bg-white/5 ${activeNote?.id === note.id ? 'border-white bg-white/10' : 'border-white/20'}`}
                             >
-                                <GripVertical className="opacity-20 group-hover:opacity-50 cursor-grab shrink-0 mt-1" size={16} />
+                                <GripVertical className="opacity-20 group-hover:opacity-50 cursor-grab shrink-0 mt-1" size={14} />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start">
-                                        <div>
-                                            <div className="font-bold truncate">{note.title || 'Untitled'}</div>
-                                            <div className="text-xs opacity-60 mt-1">{note.date}</div>
+                                        <div className="min-w-0">
+                                            <div className={`font-bold truncate text-sm uppercase tracking-wider ${activeNote?.id === note.id ? 'text-blue-200' : 'text-white'}`}>{note.title || 'Untitled'}</div>
+                                            <div className="text-[10px] opacity-50 mt-1 font-mono">{note.date}</div>
                                         </div>
-                                        <button onClick={(e) => deleteNote(e, note.id)} className="opacity-50 hover:opacity-100 hover:text-red-500">
-                                            <Trash2 size={16} />
+                                        <button onClick={(e) => deleteNote(e, note.id)} className="opacity-0 group-hover:opacity-100 hover:text-red-500 p-1">
+                                            <Trash2 size={12} />
                                         </button>
                                     </div>
                                 </div>
@@ -203,59 +398,94 @@ export const Notes: React.FC = () => {
       </div>
 
       {/* Editor Area */}
-      <div className="w-full md:w-2/3 h-full border-4 border-white p-8 flex flex-col relative">
+      <div className="w-full md:w-2/3 h-full border-4 border-white flex flex-col relative bg-[#020617]">
         {activeNote ? (
           <>
-            <div className="flex justify-between items-start mb-6">
+            {/* Toolbar */}
+            <div className="h-12 border-b border-white/20 flex items-center justify-between px-4 bg-white/5 shrink-0">
+                <div className="flex gap-1">
+                    <button onClick={() => insertText('**', '**')} className="p-1.5 hover:bg-white/10 rounded text-xs" title="Bold"><Bold size={14} /></button>
+                    <button onClick={() => insertText('*', '*')} className="p-1.5 hover:bg-white/10 rounded text-xs" title="Italic"><Italic size={14} /></button>
+                    <button onClick={() => insertText('# ')} className="p-1.5 hover:bg-white/10 rounded text-xs" title="Heading"><Type size={14} /></button>
+                    <button onClick={() => insertText('- ')} className="p-1.5 hover:bg-white/10 rounded text-xs" title="List"><List size={14} /></button>
+                    <button onClick={() => insertText('[[', ']]')} className="p-1.5 hover:bg-white/10 rounded text-xs text-purple-300" title="WikiLink"><Hash size={14} /></button>
+                </div>
+
+                <div className="flex gap-4">
+                    <button onClick={uploadToVault} className="p-1.5 hover:text-blue-300 transition-colors" title="Encrypt to Vault">
+                        <HardDrive size={16} />
+                    </button>
+                    <button onClick={downloadNote} className="p-1.5 hover:text-blue-300 transition-colors" title="Download .MD">
+                        <Download size={16} />
+                    </button>
+                    <div className="w-px h-4 bg-white/20 self-center" />
+                    <button 
+                        onClick={() => setViewMode(viewMode === 'edit' ? 'preview' : 'edit')}
+                        className={`flex items-center gap-2 text-xs font-bold uppercase px-3 py-1 rounded transition-colors ${viewMode === 'preview' ? 'bg-blue-600 text-white' : 'hover:bg-white/10'}`}
+                    >
+                        {viewMode === 'edit' ? <Eye size={14} /> : <Edit3 size={14} />}
+                        {viewMode === 'edit' ? 'Preview' : 'Editor'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Note Title Input */}
+            <div className="px-8 pt-6 pb-2 shrink-0">
                 <input 
                     type="text" 
                     value={activeNote.title} 
                     onChange={(e) => updateActiveNote('title', e.target.value)}
-                    className="bg-transparent text-3xl md:text-5xl font-bold uppercase outline-none placeholder-white/30 text-white w-full"
-                    placeholder="ENTRY TITLE"
+                    className="bg-transparent text-3xl md:text-4xl font-bold uppercase outline-none placeholder-white/30 text-white w-full border-none"
+                    placeholder="PROTOCOL TITLE"
                 />
                 
-                {/* Folder Mover */}
-                <div className="relative group shrink-0 ml-4">
-                     <button className="flex items-center gap-2 text-xs font-bold uppercase border border-white px-2 py-1 opacity-60 hover:opacity-100">
-                         <Folder size={12} />
-                         {folders.find(f => f.id === activeNote.folderId)?.name || 'NO DIR'}
-                     </button>
-                     <div className="absolute right-0 top-full mt-1 w-32 bg-blue-base border border-white hidden group-hover:block z-20">
-                         <div 
-                             className="px-2 py-1 hover:bg-white hover:text-blue-base text-xs font-bold cursor-pointer"
-                             onClick={() => updateActiveNote('folderId', '')}
-                         >
-                             NO DIR
-                         </div>
-                         {folders.map(f => (
-                             <div 
-                                key={f.id}
-                                className="px-2 py-1 hover:bg-white hover:text-blue-base text-xs font-bold cursor-pointer truncate"
-                                onClick={() => updateActiveNote('folderId', f.id)}
-                             >
-                                 {f.name}
-                             </div>
-                         ))}
-                     </div>
+                <div className="flex items-center gap-2 mt-2 text-xs opacity-50 uppercase tracking-widest">
+                    <Folder size={12} />
+                    {folders.find(f => f.id === activeNote.folderId)?.name || 'ROOT DIRECTORY'}
                 </div>
             </div>
 
-            <div className="w-full h-[2px] bg-white/20 mb-6" />
-            <textarea 
-              value={activeNote.content}
-              onChange={(e) => updateActiveNote('content', e.target.value)}
-              className="flex-1 bg-transparent resize-none outline-none text-lg leading-relaxed font-light placeholder-white/30 text-white"
-              placeholder="Begin typing secure log..."
-            />
-            <div className="absolute bottom-4 right-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest opacity-50">
-              <Save size={14} /> Auto-Saved
+            {/* Editor / Preview Content */}
+            <div className="flex-1 relative overflow-hidden">
+                {viewMode === 'edit' ? (
+                    <textarea 
+                        id="note-editor"
+                        value={activeNote.content}
+                        onChange={(e) => updateActiveNote('content', e.target.value)}
+                        className="w-full h-full bg-transparent resize-none outline-none text-sm md:text-base leading-relaxed font-mono placeholder-white/20 text-white/90 p-8 pt-4 selection:bg-blue-500/50"
+                        placeholder="Enter directives..."
+                        spellCheck={false}
+                    />
+                ) : (
+                    <div className="w-full h-full overflow-y-auto p-8 pt-4 markdown-body">
+                        {renderMarkdown(activeNote.content)}
+                    </div>
+                )}
             </div>
+
+            <div className="absolute bottom-2 right-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-30 pointer-events-none">
+              <Save size={10} /> Auto-Saved // Markdown Enabled
+            </div>
+
+            {/* Notification Toast */}
+            <AnimatePresence>
+                {notification && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white text-blue-base px-4 py-2 font-bold uppercase text-xs tracking-widest shadow-lg"
+                    >
+                        {notification}
+                    </motion.div>
+                )}
+            </AnimatePresence>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center opacity-40">
-            <div className="text-6xl font-bold mb-4">SELECT LOG</div>
-            <p className="uppercase tracking-widest">Or create a new entry to begin</p>
+          <div className="flex-1 flex flex-col items-center justify-center opacity-30">
+            <FileText size={64} className="mb-6 stroke-1" />
+            <div className="text-2xl font-bold uppercase tracking-widest mb-2">Select Log</div>
+            <p className="text-xs uppercase tracking-widest">Or initiate new entry to begin</p>
           </div>
         )}
       </div>

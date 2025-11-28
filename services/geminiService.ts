@@ -19,7 +19,7 @@ export const createOracleChat = (): ChatSession => {
   };
 };
 
-export const sendMessageToOracle = async (chat: ChatSession, message: string, model: string = 'gemini-1.5-flash'): Promise<string> => {
+export const sendMessageToOracle = async (chat: ChatSession, message: string, model: string = 'gemini-2.0-flash'): Promise<string> => {
   const apiKey = process.env.API_KEY || localStorage.getItem('blue_api_key') || '';
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   

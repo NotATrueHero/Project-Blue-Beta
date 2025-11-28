@@ -1,16 +1,19 @@
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Plus, Globe, Trash2, ExternalLink, GripVertical, Edit2, FolderPlus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Globe, Trash2, ExternalLink, Edit2, FolderPlus, ArrowUpDown, Calendar, Clock, Type } from 'lucide-react';
 import { Bookmark, BookmarkCategory, LinkOpenMode } from '../types';
 
 interface BookmarksProps {
     linkOpenMode: LinkOpenMode;
 }
 
+type SortMode = 'newest' | 'oldest' | 'alpha';
+
 export const Bookmarks: React.FC<BookmarksProps> = ({ linkOpenMode }) => {
   const [categories, setCategories] = useState<BookmarkCategory[]>([]);
+  const [sortMode, setSortMode] = useState<SortMode>('newest');
   
   // Adding Bookmark State
   const [isAddingBookmark, setIsAddingBookmark] = useState(false);
@@ -28,6 +31,8 @@ export const Bookmarks: React.FC<BookmarksProps> = ({ linkOpenMode }) => {
 
   useEffect(() => {
     const savedCats = localStorage.getItem('blue_uplink_categories');
+    const savedSort = localStorage.getItem('blue_uplink_sort');
+    
     if (savedCats) {
         setCategories(JSON.parse(savedCats));
     } else {
@@ -53,11 +58,52 @@ export const Bookmarks: React.FC<BookmarksProps> = ({ linkOpenMode }) => {
             localStorage.setItem('blue_uplink_categories', JSON.stringify([defaultCat]));
         }
     }
+
+    if (savedSort) {
+        setSortMode(savedSort as SortMode);
+    }
   }, []);
 
   const saveCategories = (updated: BookmarkCategory[]) => {
     setCategories(updated);
     localStorage.setItem('blue_uplink_categories', JSON.stringify(updated));
+  };
+
+  const cycleSortMode = () => {
+      let next: SortMode = 'newest';
+      if (sortMode === 'newest') next = 'oldest';
+      else if (sortMode === 'oldest') next = 'alpha';
+      else next = 'newest';
+      
+      setSortMode(next);
+      localStorage.setItem('blue_uplink_sort', next);
+  };
+
+  const getSortedData = () => {
+      // Clone to avoid mutating state directly during sort
+      const sortedCats = [...categories];
+
+      // 1. Sort Categories
+      if (sortMode === 'alpha') {
+          sortedCats.sort((a, b) => a.title.localeCompare(b.title));
+      } else if (sortMode === 'newest') {
+          sortedCats.sort((a, b) => parseInt(b.id) - parseInt(a.id));
+      } else if (sortMode === 'oldest') {
+          sortedCats.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+      }
+
+      // 2. Sort Bookmarks within Categories
+      return sortedCats.map(cat => {
+          const sortedBookmarks = [...cat.bookmarks];
+          if (sortMode === 'alpha') {
+              sortedBookmarks.sort((a, b) => a.title.localeCompare(b.title));
+          } else if (sortMode === 'newest') {
+              sortedBookmarks.sort((a, b) => parseInt(b.id) - parseInt(a.id));
+          } else if (sortMode === 'oldest') {
+              sortedBookmarks.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+          }
+          return { ...cat, bookmarks: sortedBookmarks };
+      });
   };
 
   const addCategory = (e: React.FormEvent) => {
@@ -134,12 +180,22 @@ export const Bookmarks: React.FC<BookmarksProps> = ({ linkOpenMode }) => {
       saveCategories(updated);
   };
 
-  const handleBookmarkReorder = (catId: string, newOrder: Bookmark[]) => {
-      const updated = categories.map(c => {
-          if (c.id === catId) return { ...c, bookmarks: newOrder };
-          return c;
-      });
-      saveCategories(updated);
+  const sortedCategories = getSortedData();
+
+  const getSortIcon = () => {
+      switch(sortMode) {
+          case 'newest': return <Clock size={14} />;
+          case 'oldest': return <Calendar size={14} />;
+          case 'alpha': return <Type size={14} />;
+      }
+  };
+
+  const getSortLabel = () => {
+      switch(sortMode) {
+          case 'newest': return 'NEWEST';
+          case 'oldest': return 'OLDEST';
+          case 'alpha': return 'A - Z';
+      }
   };
 
   return (
@@ -149,18 +205,28 @@ export const Bookmarks: React.FC<BookmarksProps> = ({ linkOpenMode }) => {
       exit={{ opacity: 0 }}
       className="w-full h-full pt-24 px-6 md:px-12 pb-12 max-w-7xl mx-auto flex flex-col"
     >
-      <div className="flex justify-between items-end mb-8 border-b-2 border-white pb-6 gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-end mb-8 border-b-2 border-white pb-6 gap-6">
         <div>
           <h1 className="text-4xl md:text-6xl font-bold uppercase tracking-tighter mb-2">Uplink</h1>
           <p className="text-sm md:text-base uppercase tracking-widest opacity-70">Secure External Network Bridge</p>
         </div>
         
-        <button 
-            onClick={() => setIsAddingCategory(true)}
-            className="flex items-center gap-2 border-2 border-white px-4 py-2 font-bold uppercase hover:bg-white hover:text-blue-base transition-colors text-xs tracking-widest"
-        >
-            <FolderPlus size={16} /> New Sector
-        </button>
+        <div className="flex gap-4">
+            <button 
+                onClick={cycleSortMode}
+                className="flex items-center gap-2 border border-white/50 px-4 py-2 font-bold uppercase hover:bg-white hover:text-blue-base transition-colors text-xs tracking-widest"
+                title="Change Sort Order"
+            >
+                {getSortIcon()} {getSortLabel()}
+            </button>
+
+            <button 
+                onClick={() => setIsAddingCategory(true)}
+                className="flex items-center gap-2 border-2 border-white px-4 py-2 font-bold uppercase hover:bg-white hover:text-blue-base transition-colors text-xs tracking-widest"
+            >
+                <FolderPlus size={16} /> New Sector
+            </button>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -222,13 +288,11 @@ export const Bookmarks: React.FC<BookmarksProps> = ({ linkOpenMode }) => {
       </AnimatePresence>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar pb-20">
-          <Reorder.Group axis="y" values={categories} onReorder={saveCategories} className="space-y-12">
-              {categories.map(category => (
-                  <Reorder.Item key={category.id} value={category} className="relative">
+          <div className="space-y-12">
+              {sortedCategories.map(category => (
+                  <motion.div layout key={category.id} className="relative">
                       {/* CATEGORY HEADER */}
-                      <div className="flex items-center gap-4 mb-4 group cursor-grab active:cursor-grabbing border-b border-white/20 pb-2">
-                          <GripVertical className="opacity-20 group-hover:opacity-100 transition-opacity" />
-                          
+                      <div className="flex items-center gap-4 mb-4 border-b border-white/20 pb-2 group">
                           <div className="flex-1">
                               {editingCategoryId === category.id ? (
                                   <input 
@@ -258,56 +322,56 @@ export const Bookmarks: React.FC<BookmarksProps> = ({ linkOpenMode }) => {
                           </div>
                       </div>
 
-                      {/* BOOKMARKS GRID - Removed 'axis="y"' to allow 2D drag in grid */}
-                      <Reorder.Group 
-                        values={category.bookmarks} 
-                        onReorder={(newOrder) => handleBookmarkReorder(category.id, newOrder)}
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                      >
-                          {category.bookmarks.map(bm => (
-                              <Reorder.Item 
-                                key={bm.id} 
-                                value={bm} 
-                                className="relative h-full"
-                              >
-                                  <div className="group relative h-40 border-4 border-white p-6 flex flex-col justify-between hover:bg-white hover:text-blue-base transition-all duration-300 hover:-translate-y-1 cursor-default overflow-hidden bg-black/20">
-                                       
-                                       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                                           <GripVertical className="cursor-grab active:cursor-grabbing p-1" size={24} />
-                                           <button onClick={(e) => { e.stopPropagation(); deleteBookmark(category.id, bm.id); }} className="p-1 hover:text-red-500">
-                                               <Trash2 size={16} />
-                                           </button>
-                                       </div>
+                      {/* BOOKMARKS GRID */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          <AnimatePresence>
+                            {category.bookmarks.map(bm => (
+                                <motion.div 
+                                    layout
+                                    key={bm.id}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    className="relative h-full"
+                                >
+                                    <div className="group relative h-40 border-4 border-white p-6 flex flex-col justify-between hover:bg-white hover:text-blue-base transition-all duration-300 hover:-translate-y-1 cursor-default overflow-hidden bg-black/20">
+                                        
+                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                            <button onClick={(e) => { e.stopPropagation(); deleteBookmark(category.id, bm.id); }} className="p-1 hover:text-red-500">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
 
-                                       <a 
-                                           href={bm.url} 
-                                           target={linkOpenMode === 'new_tab' ? "_blank" : "_self"} 
-                                           rel="noopener noreferrer" 
-                                           className="absolute inset-0 z-10" 
-                                       />
+                                        <a 
+                                            href={bm.url} 
+                                            target={linkOpenMode === 'new_tab' ? "_blank" : "_self"} 
+                                            rel="noopener noreferrer" 
+                                            className="absolute inset-0 z-10" 
+                                        />
 
-                                       <Globe className="w-8 h-8 opacity-50 group-hover:opacity-100 transition-opacity" />
-                                       
-                                       <div className="w-full">
-                                          <div className="text-xl font-bold uppercase leading-tight mb-2 break-words line-clamp-1">{bm.title}</div>
-                                          <div className="flex items-center gap-2 text-xs font-mono opacity-60 group-hover:opacity-100 truncate w-full">
-                                             <ExternalLink size={12} className="shrink-0" />
-                                             <span className="truncate">{bm.url}</span>
-                                          </div>
-                                       </div>
-                                  </div>
-                              </Reorder.Item>
-                          ))}
-                      </Reorder.Group>
+                                        <Globe className="w-8 h-8 opacity-50 group-hover:opacity-100 transition-opacity" />
+                                        
+                                        <div className="w-full">
+                                            <div className="text-xl font-bold uppercase leading-tight mb-2 break-words line-clamp-1">{bm.title}</div>
+                                            <div className="flex items-center gap-2 text-xs font-mono opacity-60 group-hover:opacity-100 truncate w-full">
+                                                <ExternalLink size={12} className="shrink-0" />
+                                                <span className="truncate">{bm.url}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                          </AnimatePresence>
+                      </div>
 
                       {category.bookmarks.length === 0 && (
                           <div className="border-2 border-dashed border-white/20 p-8 text-center opacity-40 text-xs font-bold uppercase tracking-widest">
                               Empty Sector
                           </div>
                       )}
-                  </Reorder.Item>
+                  </motion.div>
               ))}
-          </Reorder.Group>
+          </div>
       </div>
     </motion.div>
   );

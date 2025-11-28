@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Upload, Trash2, Image as ImageIcon, AlertTriangle, HardDrive, X, Download, Maximize2, FileText, FolderPlus, Folder, ChevronRight, CornerDownRight, ChevronDown, Edit2, GripVertical } from 'lucide-react';
+import { Upload, Trash2, Image as ImageIcon, AlertTriangle, HardDrive, X, Download, Maximize2, FileText, FolderPlus, Folder, ChevronRight, CornerDownRight, ChevronDown, Edit2, GripVertical, FileCode } from 'lucide-react';
 import { FileItem, FileFolder } from '../types';
 
 const MAX_STORAGE_BYTES = 4.5 * 1024 * 1024; // ~4.5MB safe limit for localStorage
@@ -23,6 +23,7 @@ export const Files: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [fileContent, setFileContent] = useState<string | null>(null);
   
   // Folder Creation / Renaming
   const [isAddingFolder, setIsAddingFolder] = useState(false);
@@ -39,6 +40,26 @@ export const Files: React.FC = () => {
     if (saved) setFiles(JSON.parse(saved));
     if (savedFolders) setFolders(JSON.parse(savedFolders));
   }, []);
+
+  useEffect(() => {
+      // Decode content when a text file is selected
+      if (selectedFile && selectedFile.type.startsWith('text/')) {
+          try {
+              // Extract base64 part if standard data URI
+              const base64 = selectedFile.data.split(',')[1];
+              if (base64) {
+                  const decoded = decodeURIComponent(escape(atob(base64)));
+                  setFileContent(decoded);
+              } else {
+                  setFileContent("Error: Invalid Data Format");
+              }
+          } catch (e) {
+              setFileContent("Error: Could not decode text content.");
+          }
+      } else {
+          setFileContent(null);
+      }
+  }, [selectedFile]);
 
   const saveFiles = (updated: FileItem[]) => {
     try {
@@ -80,9 +101,7 @@ export const Files: React.FC = () => {
 
   const deleteFolder = (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      // Move files in this folder to Root (or parent?) -> Root for safety
       const updatedFiles = files.map(f => f.folderId === id ? { ...f, folderId: undefined } : f);
-      // Recursively delete subfolders
       const idsToDelete = [id];
       const findChildren = (pid: string) => {
           folders.forEach(f => {
@@ -136,45 +155,58 @@ export const Files: React.FC = () => {
 
   // --- File Operations ---
   const handleFileUpload = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-        setError("Invalid format. Image files only.");
+    // Determine type
+    const isImage = file.type.startsWith('image/');
+    const isText = file.type.startsWith('text/') || file.name.endsWith('.md') || file.name.endsWith('.json') || file.name.endsWith('.js') || file.name.endsWith('.ts');
+
+    if (!isImage && !isText) {
+        setError("Invalid format. Image or Text files only.");
         return;
     }
     
-    // Resize/Compress image before saving to save space
     const reader = new FileReader();
-    reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const maxWidth = 800;
-            const scale = maxWidth / img.width;
-            
-            const width = scale < 1 ? maxWidth : img.width;
-            const height = scale < 1 ? img.height * scale : img.height;
-
-            canvas.width = width;
-            canvas.height = height;
-            ctx?.drawImage(img, 0, 0, width, height);
-            
-            const base64 = canvas.toDataURL('image/jpeg', 0.7);
-
-            const newFile: FileItem = {
-                id: Date.now().toString(),
-                name: file.name,
-                type: file.type,
-                data: base64,
-                size: base64.length, 
-                date: new Date().toLocaleDateString(),
-                folderId: activeFolderId || undefined 
+    
+    if (isImage) {
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const maxWidth = 800;
+                const scale = maxWidth / img.width;
+                const width = scale < 1 ? maxWidth : img.width;
+                const height = scale < 1 ? img.height * scale : img.height;
+                canvas.width = width;
+                canvas.height = height;
+                ctx?.drawImage(img, 0, 0, width, height);
+                const base64 = canvas.toDataURL('image/jpeg', 0.7);
+                addFile(file, base64);
             };
-
-            saveFiles([...files, newFile]);
+            img.src = e.target?.result as string;
         };
-        img.src = e.target?.result as string;
+        reader.readAsDataURL(file);
+    } else {
+        reader.onload = (e) => {
+            const text = e.target?.result as string;
+            // Base64 encode text
+            const base64 = `data:${file.type || 'text/plain'};base64,${btoa(unescape(encodeURIComponent(text)))}`;
+            addFile(file, base64);
+        };
+        reader.readAsText(file);
+    }
+  };
+
+  const addFile = (file: File, data: string) => {
+      const newFile: FileItem = {
+        id: Date.now().toString(),
+        name: file.name,
+        type: file.type || (file.name.endsWith('.md') ? 'text/markdown' : 'text/plain'),
+        data: data,
+        size: data.length, // Rough estimate
+        date: new Date().toLocaleDateString(),
+        folderId: activeFolderId || undefined 
     };
-    reader.readAsDataURL(file);
+    saveFiles([...files, newFile]);
   };
 
   const removeFile = (e: React.MouseEvent | null, id: string) => {
@@ -194,42 +226,48 @@ export const Files: React.FC = () => {
 
   const handleFileReorder = (newOrder: FileItem[]) => {
       const others = files.filter(f => f.folderId !== activeFolderId);
+      // Determine if we are in root (activeFolderId is null) or a folder
+      // The newOrder only contains files in the current view
+      // We need to merge them back with 'others'
       
-      // If activeFolderId is null (Root), we need to filter out files that HAVE a folderId
-      if (activeFolderId === null) {
-          const filesWithFolders = files.filter(f => f.folderId !== undefined);
-          saveFiles([...filesWithFolders, ...newOrder]);
-      } else {
-          saveFiles([...others, ...newOrder]);
-      }
+      // If we are at root, we need to preserve files that HAVE a folderId (others)
+      // If we are in a folder, we need to preserve files that have DIFFERENT folderId (others)
+      
+      // The issue with Reorder is that it might lose items if not careful.
+      // Safest way: 
+      saveFiles([...others, ...newOrder]);
   };
 
   const handleDragEnd = (event: any, info: any, fileId: string) => {
-      // Hit testing for folders
-      // We look for elements with data-folder-id
+      // Logic to detect drop on folder
       const dropTarget = document.elementFromPoint(info.point.x, info.point.y);
       const folderElement = dropTarget?.closest('[data-folder-id]');
       
       if (folderElement) {
           const targetId = folderElement.getAttribute('data-folder-id');
-          // If we are dropping onto the same folder we are currently in, do nothing (unless moving from root to sub?)
-          // But activeFolderId is what defines current view.
-          if (targetId && targetId !== activeFolderId) {
-             moveFile(fileId, targetId);
-          } else if (targetId === 'root' && activeFolderId !== null) {
-             moveFile(fileId, undefined);
+          // If dropping on "Root" sidebar item
+          if (targetId === 'root') {
+              if (activeFolderId !== null) moveFile(fileId, undefined);
+          } 
+          // If dropping on a folder card or sidebar item
+          else if (targetId && targetId !== activeFolderId) {
+              moveFile(fileId, targetId);
           }
       }
   };
 
   const usagePercent = calculateUsedSpace();
-
-  // Filter for view
+  
+  // Filter files for current view
   const currentViewFiles = activeFolderId 
     ? files.filter(f => f.folderId === activeFolderId) 
     : files.filter(f => f.folderId === undefined);
 
-  // --- Recursive Folder Component ---
+  // Filter folders for current view (Sub-folders)
+  const currentViewFolders = activeFolderId
+    ? folders.filter(f => f.parentId === activeFolderId)
+    : folders.filter(f => !f.parentId);
+
   const FolderTreeItem: React.FC<{ folder: FileFolder, depth: number }> = ({ folder, depth }) => {
       const children = folders.filter(f => f.parentId === folder.id);
       const isOpen = activeFolderId === folder.id || children.some(c => c.id === activeFolderId) || (activeFolderId && folders.find(f => f.id === activeFolderId)?.parentId === folder.id);
@@ -276,7 +314,6 @@ export const Files: React.FC = () => {
       );
   };
 
-  // Breadcrumbs
   const getBreadcrumbs = () => {
       const path = [];
       let curr = activeFolderId ? folders.find(f => f.id === activeFolderId) : null;
@@ -354,7 +391,6 @@ export const Files: React.FC = () => {
                     >
                         <HardDrive size={14} /> <span>ROOT INTEL</span>
                     </div>
-                    {/* Render Root Level Folders (recursively renders children) */}
                     {folders.filter(f => !f.parentId).map(folder => (
                         <FolderTreeItem key={folder.id} folder={folder} depth={0} />
                     ))}
@@ -363,7 +399,6 @@ export const Files: React.FC = () => {
 
           {/* Right Content */}
           <div className="flex-1 flex flex-col h-full min-h-0">
-               {/* Breadcrumbs & Actions */}
                <div className="flex justify-between items-center mb-4">
                    <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest overflow-hidden">
                        <span 
@@ -393,8 +428,7 @@ export const Files: React.FC = () => {
                    </button>
                </div>
 
-                {/* Upload Zone */}
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
+                <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
                 
                 <div 
                     className={`flex-1 overflow-y-auto hide-scrollbar relative border-2 border-transparent transition-all ${isDragging ? 'bg-white/10 border-white border-dashed' : ''}`}
@@ -407,64 +441,89 @@ export const Files: React.FC = () => {
                         if (file) handleFileUpload(file);
                     }}
                 >
-                    <Reorder.Group axis="y" values={currentViewFiles} onReorder={handleFileReorder} className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20">
-                        {currentViewFiles.map(file => (
-                            <Reorder.Item 
-                                key={file.id} 
-                                value={file} 
-                                onDragEnd={(e, info) => handleDragEnd(e, info, file.id)}
-                                className="relative aspect-square"
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20">
+                        {/* Render Sub-Folders first (Not Reorderable in this grid) */}
+                        {currentViewFolders.map(folder => (
+                            <div
+                                key={folder.id}
+                                data-folder-id={folder.id}
+                                onClick={() => setActiveFolderId(folder.id)}
+                                className="aspect-square border-2 border-white/50 bg-white/5 hover:bg-white/20 hover:border-white cursor-pointer flex flex-col items-center justify-center gap-2 transition-all p-4 text-center group"
                             >
-                                <div 
-                                    onClick={() => setSelectedFile(file)}
-                                    className="group w-full h-full relative border-2 border-white bg-black/20 flex flex-col cursor-pointer hover:border-blue-400 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all"
-                                >
-                                    <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <GripVertical className="cursor-grab active:cursor-grabbing text-white drop-shadow-md" size={24} />
-                                    </div>
+                                <Folder size={32} className="text-blue-300 group-hover:text-white" />
+                                <div className="text-xs font-bold uppercase truncate w-full px-2">{folder.name}</div>
+                            </div>
+                        ))}
 
-                                    <div className="flex-1 relative overflow-hidden">
-                                        <img src={file.data} alt={file.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                                            <Maximize2 className="text-white drop-shadow-md" size={32} />
+                        {/* Render Files (Reorderable) */}
+                        <Reorder.Group axis="y" values={currentViewFiles} onReorder={handleFileReorder} className="contents">
+                            {currentViewFiles.map(file => (
+                                <Reorder.Item 
+                                    key={file.id} 
+                                    value={file} 
+                                    layout // CRITICAL: Fixes overlapping during drag
+                                    onDragEnd={(e, info) => handleDragEnd(e, info, file.id)}
+                                    className="relative aspect-square"
+                                >
+                                    <div 
+                                        onClick={() => setSelectedFile(file)}
+                                        className="group w-full h-full relative border-2 border-white bg-black/20 flex flex-col cursor-pointer hover:border-blue-400 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all"
+                                    >
+                                        <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <GripVertical className="cursor-grab active:cursor-grabbing text-white drop-shadow-md" size={24} />
                                         </div>
-                                    </div>
-                                    <div className="p-3 border-t-2 border-white/20 bg-white/5 flex justify-between items-center">
-                                        <div className="overflow-hidden w-full mr-2">
-                                            {renamingId === file.id ? (
-                                                <input 
-                                                    autoFocus
-                                                    value={renameValue}
-                                                    onChange={(e) => setRenameValue(e.target.value)}
-                                                    onBlur={confirmRename}
-                                                    onKeyDown={(e) => e.key === 'Enter' && confirmRename()}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="w-full bg-transparent border-b border-white text-xs font-bold uppercase outline-none"
-                                                />
+
+                                        <div className="flex-1 relative overflow-hidden flex items-center justify-center bg-black/40">
+                                            {file.type.startsWith('image/') ? (
+                                                <img src={file.data} alt={file.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                                             ) : (
-                                                <div 
-                                                    className="font-bold text-xs uppercase truncate mb-1"
-                                                    onDoubleClick={(e) => { e.stopPropagation(); handleRename(file.id, 'file', file.name); }}
-                                                >
-                                                    {file.name}
+                                                <div className="text-white opacity-50 group-hover:opacity-100 group-hover:text-blue-300 transition-all flex flex-col items-center">
+                                                    <FileCode size={48} strokeWidth={1} />
+                                                    <div className="text-[10px] font-mono mt-2">{file.name.split('.').pop()?.toUpperCase()}</div>
                                                 </div>
                                             )}
-                                            <div className="text-[10px] font-mono opacity-50">{file.date}</div>
+                                            
+                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                                                <Maximize2 className="text-white drop-shadow-md" size={32} />
+                                            </div>
                                         </div>
-                                        <button 
-                                            onClick={(e) => removeFile(e, file.id)} 
-                                            className="p-1 hover:text-red-400 transition-colors z-10 shrink-0"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                        <div className="p-3 border-t-2 border-white/20 bg-white/5 flex justify-between items-center">
+                                            <div className="overflow-hidden w-full mr-2">
+                                                {renamingId === file.id ? (
+                                                    <input 
+                                                        autoFocus
+                                                        value={renameValue}
+                                                        onChange={(e) => setRenameValue(e.target.value)}
+                                                        onBlur={confirmRename}
+                                                        onKeyDown={(e) => e.key === 'Enter' && confirmRename()}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="w-full bg-transparent border-b border-white text-xs font-bold uppercase outline-none"
+                                                    />
+                                                ) : (
+                                                    <div 
+                                                        className="font-bold text-xs uppercase truncate mb-1"
+                                                        onDoubleClick={(e) => { e.stopPropagation(); handleRename(file.id, 'file', file.name); }}
+                                                    >
+                                                        {file.name}
+                                                    </div>
+                                                )}
+                                                <div className="text-[10px] font-mono opacity-50">{file.date}</div>
+                                            </div>
+                                            <button 
+                                                onClick={(e) => removeFile(e, file.id)} 
+                                                className="p-1 hover:text-red-400 transition-colors z-10 shrink-0"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            </Reorder.Item>
-                        ))}
-                    </Reorder.Group>
+                                </Reorder.Item>
+                            ))}
+                        </Reorder.Group>
+                    </div>
 
-                    {currentViewFiles.length === 0 && (
-                        <div className="w-full h-full flex flex-col items-center justify-center opacity-30">
+                    {currentViewFiles.length === 0 && currentViewFolders.length === 0 && (
+                        <div className="w-full h-full flex flex-col items-center justify-center opacity-30 absolute top-0 left-0 pointer-events-none">
                             <HardDrive size={48} className="mb-4" />
                             <div className="uppercase tracking-widest font-bold">No Intel Found</div>
                             <div className="text-xs mt-2">Drag files here to upload</div>
@@ -487,13 +546,13 @@ export const Files: React.FC = () => {
                 <motion.div 
                     initial={{ scale: 0.95, y: 20 }}
                     animate={{ scale: 1, y: 0 }}
-                    className="relative max-w-4xl w-full bg-black/40 border-2 border-white shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col"
+                    className="relative max-w-4xl w-full bg-black/40 border-2 border-white shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
                     <div className="flex justify-between items-center p-4 border-b border-white/20 bg-white/5">
                         <div className="flex items-center gap-3 w-full">
-                            <FileText size={20} />
+                            {selectedFile.type.startsWith('image/') ? <ImageIcon size={20} /> : <FileText size={20} />}
                             {renamingId === selectedFile.id ? (
                                 <input 
                                     autoFocus
@@ -518,21 +577,26 @@ export const Files: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-6 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
-                         <div className="relative border border-white/20 bg-black/50 flex items-center justify-center min-h-[300px] max-h-[50vh]">
-                            <img 
-                                src={selectedFile.data} 
-                                alt={selectedFile.name}
-                                className="max-w-full max-h-[50vh] object-contain"
-                            />
+                    {/* Content Viewer */}
+                    <div className="p-0 bg-black/50 flex-1 overflow-hidden flex flex-col">
+                         <div className="relative flex items-center justify-center h-full overflow-auto">
+                            {selectedFile.type.startsWith('image/') ? (
+                                <img 
+                                    src={selectedFile.data} 
+                                    alt={selectedFile.name}
+                                    className="max-w-full max-h-[60vh] object-contain"
+                                />
+                            ) : (
+                                <div className="w-full h-full min-h-[400px] p-6 text-left font-mono text-sm text-white/80 overflow-auto bg-[#0d1117]">
+                                    <pre className="whitespace-pre-wrap break-all">{fileContent || "Loading content..."}</pre>
+                                </div>
+                            )}
                          </div>
                     </div>
 
                     {/* Footer / Info Panel */}
                     <div className="p-6 border-t border-white/20 bg-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
                         
-                        {/* Metadata */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-2 text-sm w-full md:w-auto">
                             <div>
                                 <div className="text-[10px] font-bold uppercase opacity-50 tracking-widest">Size</div>
@@ -549,7 +613,6 @@ export const Files: React.FC = () => {
                                          {folders.find(f => f.id === selectedFile.folderId)?.name || 'ROOT'} <CornerDownRight size={10} />
                                      </div>
                                      
-                                     {/* Move Dropdown */}
                                      <div className="absolute bottom-full left-0 mb-1 w-40 bg-blue-base border border-white hidden group-hover:block z-50 max-h-40 overflow-y-auto">
                                          <div 
                                             onClick={() => moveFile(selectedFile.id, undefined)}
@@ -571,7 +634,6 @@ export const Files: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Actions */}
                         <div className="flex items-center gap-4 w-full md:w-auto">
                             <button 
                                 onClick={() => downloadFile(selectedFile)}
