@@ -1,13 +1,20 @@
+
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Cpu, AlertTriangle } from 'lucide-react';
+import { Send, Cpu, AlertTriangle, RefreshCw } from 'lucide-react';
 import { createOracleChat, sendMessageToOracle, ChatSession } from '../services/geminiService';
 
 interface Message {
   role: 'user' | 'model';
   text: string;
 }
+
+const MODELS = [
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+    { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash' }
+];
 
 export const Oracle: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -16,8 +23,11 @@ export const Oracle: React.FC = () => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [chatSession, setChatSession] = useState<ChatSession | null>(null);
+  const [modelIndex, setModelIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   
+  const currentModel = MODELS[modelIndex];
+
   // Check both env and local storage
   const apiKeyAvailable = !!(process.env.API_KEY || localStorage.getItem('blue_api_key'));
 
@@ -42,10 +52,14 @@ export const Oracle: React.FC = () => {
     setInput('');
     setIsTyping(true);
 
-    const response = await sendMessageToOracle(chatSession, userMsg);
+    const response = await sendMessageToOracle(chatSession, userMsg, currentModel.id);
     
     setMessages(prev => [...prev, { role: 'model', text: response }]);
     setIsTyping(false);
+  };
+
+  const cycleModel = () => {
+      setModelIndex((prev) => (prev + 1) % MODELS.length);
   };
 
   if (!apiKeyAvailable) {
@@ -71,9 +85,13 @@ export const Oracle: React.FC = () => {
                </div>
                <div>
                    <h1 className="text-2xl font-bold uppercase tracking-widest">Oracle</h1>
-                   <div className="text-xs font-mono opacity-70">
-                       Model: Gemini 1.5 Flash // Latency: Low
-                   </div>
+                   <button 
+                       onClick={cycleModel}
+                       className="flex items-center gap-2 text-xs font-mono opacity-70 hover:opacity-100 hover:text-blue-300 transition-colors text-left"
+                       title="Click to switch model"
+                   >
+                       Model: {currentModel.name} <RefreshCw size={10} />
+                   </button>
                </div>
            </div>
            

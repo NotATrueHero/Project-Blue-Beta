@@ -1,7 +1,5 @@
-// Native fetch implementation to avoid dependency issues
-const MODEL = 'gemini-1.5-flash';
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
+// Native fetch implementation to avoid dependency issues
 export interface ChatSession {
   history: { role: string; parts: { text: string }[] }[];
 }
@@ -21,8 +19,9 @@ export const createOracleChat = (): ChatSession => {
   };
 };
 
-export const sendMessageToOracle = async (chat: ChatSession, message: string): Promise<string> => {
+export const sendMessageToOracle = async (chat: ChatSession, message: string, model: string = 'gemini-1.5-flash'): Promise<string> => {
   const apiKey = process.env.API_KEY || localStorage.getItem('blue_api_key') || '';
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   
   if (!apiKey) {
       console.error("Oracle Error: API Key is missing.");
@@ -49,7 +48,7 @@ export const sendMessageToOracle = async (chat: ChatSession, message: string): P
     if (!response.ok) {
         const errorMsg = data.error?.message || response.statusText;
         console.error("Oracle API Error:", errorMsg);
-        return `Connection Failed: ${errorMsg}`;
+        return `Connection Failed: ${errorMsg} (Model: ${model})`;
     }
 
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response data.";
