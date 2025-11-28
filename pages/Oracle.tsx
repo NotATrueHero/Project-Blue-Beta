@@ -1,4 +1,3 @@
-
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
@@ -19,7 +18,9 @@ export const Oracle: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [chatSession, setChatSession] = useState<Chat | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const apiKeyAvailable = !!process.env.API_KEY;
+  
+  // Check both env and local storage to prevent false offline state
+  const apiKeyAvailable = !!(process.env.API_KEY || localStorage.getItem('blue_api_key'));
 
   useEffect(() => {
     if (apiKeyAvailable) {
@@ -54,8 +55,8 @@ export const Oracle: React.FC = () => {
               <div className="border-4 border-white p-12 max-w-xl">
                   <AlertTriangle className="w-20 h-20 mx-auto mb-8" />
                   <h2 className="text-3xl font-bold uppercase mb-4">System Offline</h2>
-                  <p className="text-lg opacity-80 mb-6">Oracle module requires a valid API Key configuration in the environment variables.</p>
-                  <div className="inline-block border px-4 py-2 font-mono text-sm">process.env.API_KEY missing</div>
+                  <p className="text-lg opacity-80 mb-6">Oracle module requires a valid API Key configuration in the Config menu or environment variables.</p>
+                  <div className="inline-block border px-4 py-2 font-mono text-sm">API Key Missing</div>
               </div>
           </div>
       )

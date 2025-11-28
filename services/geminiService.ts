@@ -1,11 +1,17 @@
-
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 
+const getApiKey = () => {
+  return process.env.API_KEY || localStorage.getItem('blue_api_key') || '';
+}
+
 // Initialize the client strictly according to guidelines
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 export const createOracleChat = (): Chat => {
-  return ai.chats.create({
+  // Re-initialize to ensure we capture the latest key if it changed in settings
+  const currentAi = new GoogleGenAI({ apiKey: getApiKey() });
+  
+  return currentAi.chats.create({
     model: 'gemini-2.5-flash',
     config: {
       systemInstruction: 'You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone. Keep answers brief. Do not output internal thought traces or reasoning steps.',
