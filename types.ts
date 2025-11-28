@@ -69,7 +69,7 @@ export interface FileItem {
   date: string;
 }
 
-export type Theme = 'standard' | 'stealth' | 'fluid';
+export type Theme = 'standard' | 'stealth' | 'fluid' | 'vanta';
 export type FluidAccent = 'teal' | 'violet' | 'rose' | 'amber' | 'blue';
 export type LinkOpenMode = 'new_tab' | 'current_tab';
 

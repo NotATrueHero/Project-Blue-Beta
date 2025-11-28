@@ -3,8 +3,8 @@ import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useTelemetry } from '../components/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, ExternalLink, X, Terminal, ArrowRight, Zap, Wifi, Signal, Globe, LayoutGrid, Server, Cpu, Radio, Disc } from 'lucide-react';
-import { ViewMode, ToolItem, WidgetPosition, QuickLink, LinkOpenMode, Theme, FluidAccent, TaskList, Note } from '../types';
+import { Search, Plus, ExternalLink, X, Terminal, ArrowRight, Zap, Wifi, Globe, LayoutGrid, Server, Cpu, Disc, MousePointer2, ArrowLeft, Target, Navigation as NavIcon, Home } from 'lucide-react';
+import { ViewMode, ToolItem, WidgetPosition, QuickLink, LinkOpenMode, Theme, FluidAccent } from '../types';
 
 // SPECIFIC ORDER REQUESTED
 const tools: ToolItem[] = [
@@ -52,6 +52,17 @@ const getFluidSector = (category: string): string => {
     }
 };
 
+const SECTORS = ['HOME', 'NAV', 'NETWORK', 'SYSTEM', 'COMPUTE', 'STUDIO'];
+
+const SECTOR_INFO: Record<string, { icon: React.ReactNode, desc: string }> = {
+    'HOME': { icon: <LayoutGrid size={32} />, desc: 'Main Terminal' },
+    'NAV': { icon: <Target size={32} />, desc: 'Sector Jump Gate' },
+    'NETWORK': { icon: <Globe size={32} />, desc: 'Global Connectivity & Environment' },
+    'SYSTEM': { icon: <Server size={32} />, desc: 'Core Operations & Data Storage' },
+    'COMPUTE': { icon: <Cpu size={32} />, desc: 'Processing & Cryptography' },
+    'STUDIO': { icon: <Disc size={32} />, desc: 'Creative Tools & Simulations' }
+};
+
 interface DashboardProps {
     viewMode: ViewMode;
     onHeroIntersect: (visible: boolean) => void;
@@ -73,6 +84,7 @@ interface SystemWidgetProps {
 
 // Reusable System Widget Component (Grid/Hero Mode)
 const SystemWidget: React.FC<SystemWidgetProps> = ({ mode, linkOpenMode, toolSearchQuery, onToolSearch }) => {
+    // ... (Existing SystemWidget code logic is unchanged)
     const [time, setTime] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
     const [quickLinks, setQuickLinks] = useState<QuickLink[]>([]);
@@ -82,11 +94,9 @@ const SystemWidget: React.FC<SystemWidgetProps> = ({ mode, linkOpenMode, toolSea
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const navigate = useNavigate();
 
-    // Refs for auto-scroll visibility
     const netSearchRef = useRef<HTMLInputElement>(null);
     const toolSearchRef = useRef<HTMLInputElement>(null);
 
-    // Helper to scroll input into view if typing while off-screen
     const ensureVisible = (ref: React.RefObject<HTMLInputElement>) => {
         if (ref.current) {
             const rect = ref.current.getBoundingClientRect();
@@ -409,6 +419,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
   const [toolSearchQuery, setToolSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   
+  // Vanta Mode Specific
+  const [currentSectorIndex, setCurrentSectorIndex] = useState(0);
+  const lastScrollTime = useRef(0);
+  const [vantaInput, setVantaInput] = useState('');
+
   // Fluid Mode Specific State
   const [time, setTime] = useState(new Date());
   const [webSearchQuery, setWebSearchQuery] = useState('');
@@ -416,7 +431,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
   const { battery, network } = useTelemetry();
 
   useEffect(() => {
-    // Clock for Fluid Mode
+    // Clock for Fluid/Vanta Mode
     const timer = setInterval(() => setTime(new Date()), 1000);
     // Load Quick Links
     const saved = localStorage.getItem('blue_quick_links');
@@ -436,6 +451,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
     return () => observer.disconnect();
   }, [onHeroIntersect]);
 
+  // Vanta Mouse Wheel Navigation
+  useEffect(() => {
+      if (theme !== 'vanta') return;
+
+      const handleWheel = (e: WheelEvent) => {
+          // Disable wheel nav if user is searching to avoid confusion
+          if (toolSearchQuery) return;
+
+          const now = Date.now();
+          // Throttle to prevent rapid switching
+          if (now - lastScrollTime.current > 500) {
+              if (Math.abs(e.deltaY) > 20) {
+                  if (e.deltaY > 0) {
+                      setCurrentSectorIndex(prev => (prev + 1) % SECTORS.length);
+                  } else {
+                      setCurrentSectorIndex(prev => (prev - 1 + SECTORS.length) % SECTORS.length);
+                  }
+                  lastScrollTime.current = now;
+              }
+          }
+      };
+
+      window.addEventListener('wheel', handleWheel);
+      return () => window.removeEventListener('wheel', handleWheel);
+  }, [theme, toolSearchQuery]);
+
   // Filter tools based on search query and theme-specific category logic
   const filteredTools = tools.filter(tool => {
       const q = toolSearchQuery.toLowerCase();
@@ -448,13 +489,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
       );
       
       if (theme === 'fluid') {
-          // In Fluid mode, selectedCategory represents a Sector (NETWORK, SYSTEM...)
           if (selectedCategory === 'All') return matchesSearch;
           const sector = getFluidSector(tool.category);
           return matchesSearch && sector === selectedCategory;
+      } else if (theme === 'vanta') {
+          // If filtering via search box, ignore sector constraints
+          if (toolSearchQuery) return matchesSearch;
+
+          // Otherwise, filter by current carousel slide
+          const currentSector = SECTORS[currentSectorIndex];
+          const toolSector = getFluidSector(tool.category);
+          return matchesSearch && toolSector === currentSector;
       } else {
-          // In Standard mode, filter logic matches categories directly if needed (though UI doesn't expose it currently, this keeps it robust)
-          // Since Standard mode currently shows all tools, we just check Search.
           return matchesSearch; 
       }
   });
@@ -464,6 +510,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
     if (!webSearchQuery.trim()) return;
     window.open(`https://www.google.com/search?q=${encodeURIComponent(webSearchQuery)}`, linkOpenMode === 'new_tab' ? '_blank' : '_self');
     setWebSearchQuery('');
+  };
+
+  const handleVantaToolSearch = (e: React.FormEvent | React.KeyboardEvent) => {
+      // Allow form submit or specific Enter key handling
+      if ('key' in e && e.key !== 'Enter') return;
+      
+      e.preventDefault();
+      if (!vantaInput.trim()) return;
+      setToolSearchQuery(vantaInput);
+  };
+
+  const clearVantaSearch = () => {
+      setToolSearchQuery('');
+      setVantaInput('');
+  };
+
+  const nextSector = () => {
+      setCurrentSectorIndex(prev => (prev + 1) % SECTORS.length);
+  };
+
+  const prevSector = () => {
+      setCurrentSectorIndex(prev => (prev - 1 + SECTORS.length) % SECTORS.length);
   };
 
   // --- DYNAMIC FLUID STYLES ---
@@ -564,6 +632,218 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
 
   const s = getFluidStyles();
   const navigate = useNavigate();
+
+  // --- VANTA THEME LAYOUT ---
+  if (theme === 'vanta') {
+      const isHomeSlide = SECTORS[currentSectorIndex] === 'HOME' && !toolSearchQuery;
+      const isNavSlide = SECTORS[currentSectorIndex] === 'NAV' && !toolSearchQuery;
+      const sectorInfo = SECTOR_INFO[SECTORS[currentSectorIndex]];
+
+      // Adjusted Padding to avoid collision with Music Player (top right)
+      return (
+        <div className="w-full h-full bg-[#0047FF] text-white p-6 md:p-12 pt-24 relative flex flex-col font-sans selection:bg-white selection:text-[#0047FF] overflow-hidden">
+           
+           {/* HEADER */}
+           <div className="flex justify-between items-center z-20 relative mb-8 md:mb-0">
+               <div>
+                   <h1 className="text-xl font-bold uppercase tracking-widest leading-none">Project Blue Beta</h1>
+                   <div className="text-xs font-bold opacity-50 uppercase tracking-widest mt-1">System Version 2.7</div>
+               </div>
+               <div className="text-right pr-12 md:pr-20"> {/* Added Right Padding for Music Player safety */}
+                   <div className="text-xl font-mono font-bold leading-none">{time.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}</div>
+                   <div className="text-xs font-bold opacity-50 uppercase tracking-widest mt-1">{time.toLocaleDateString()}</div>
+               </div>
+           </div>
+
+           {/* SLIDESHOW CONTENT */}
+           <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full max-w-[1600px] mx-auto">
+               
+               <AnimatePresence mode="wait">
+                   {isHomeSlide ? (
+                       <motion.div 
+                           key="home"
+                           initial={{ opacity: 0 }}
+                           animate={{ opacity: 1 }}
+                           exit={{ opacity: 0 }}
+                           transition={{ duration: 0.5 }}
+                           className="flex flex-col items-center justify-center w-full gap-16"
+                       >
+                           <div className="text-center">
+                               <div className="text-[12vw] font-bold uppercase leading-[0.8] tracking-tighter mix-blend-overlay opacity-30">PROJECT</div>
+                               <div className="text-[12vw] font-bold uppercase leading-[0.8] tracking-tighter">BLUE</div>
+                           </div>
+                           
+                           {/* Giant Side-by-Side Search */}
+                           <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8">
+                               <form onSubmit={handleWebSearch} className="flex-1 group">
+                                   <div className="relative border-b-4 border-white pb-2 flex items-center">
+                                       <Search size={48} className="mr-6 opacity-60" />
+                                       <input 
+                                           value={webSearchQuery}
+                                           onChange={e => setWebSearchQuery(e.target.value)}
+                                           placeholder="WEB SEARCH"
+                                           className="w-full bg-transparent outline-none text-4xl md:text-6xl font-bold uppercase placeholder-white/30"
+                                           onKeyDown={(e) => e.stopPropagation()} 
+                                       />
+                                   </div>
+                               </form>
+
+                               <div className="flex-1 group">
+                                   <div className="relative border-b-4 border-white pb-2 flex items-center">
+                                       <Terminal size={48} className="mr-6 opacity-60" />
+                                       <input 
+                                           value={vantaInput}
+                                           onChange={e => setVantaInput(e.target.value)}
+                                           onKeyDown={(e) => e.key === 'Enter' && handleVantaToolSearch(e)}
+                                           placeholder="TOOL SEARCH"
+                                           className="w-full bg-transparent outline-none text-4xl md:text-6xl font-bold uppercase placeholder-white/30"
+                                       />
+                                   </div>
+                                   <div className="text-xs uppercase tracking-widest opacity-50 mt-2 text-right">Press Enter to Search</div>
+                               </div>
+                           </div>
+
+                           <div className="flex items-center gap-4 animate-bounce mt-8 opacity-50">
+                               <MousePointer2 size={24} />
+                               <span className="text-xs font-bold uppercase tracking-[0.2em]">Scroll to Navigate</span>
+                           </div>
+                       </motion.div>
+                   ) : isNavSlide ? (
+                        <motion.div 
+                           key="nav"
+                           initial={{ opacity: 0, scale: 0.9 }}
+                           animate={{ opacity: 1, scale: 1 }}
+                           exit={{ opacity: 0, scale: 1.1 }}
+                           transition={{ duration: 0.4 }}
+                           className="w-full h-[75vh] flex flex-col items-center justify-center"
+                       >
+                           <div className="mb-12 text-center relative">
+                               <button 
+                                    onClick={() => setCurrentSectorIndex(0)}
+                                    className="absolute left-1/2 -translate-x-1/2 -top-16 opacity-50 hover:opacity-100 hover:text-blue-300 transition-all flex flex-col items-center gap-1"
+                               >
+                                   <Home size={24} />
+                                   <span className="text-[10px] font-bold uppercase tracking-widest">Home</span>
+                               </button>
+                               <h2 className="text-[6vw] font-bold uppercase tracking-tighter leading-none">NAVIGATION</h2>
+                               <p className="text-xl opacity-60 uppercase tracking-[0.5em] mt-2">Select Sector Jump Target</p>
+                           </div>
+                           
+                           <div className="grid grid-cols-2 gap-8 w-full max-w-5xl">
+                                {['NETWORK', 'SYSTEM', 'COMPUTE', 'STUDIO'].map((sector) => (
+                                    <button 
+                                        key={sector}
+                                        onClick={() => setCurrentSectorIndex(SECTORS.indexOf(sector))}
+                                        className="group relative bg-white/5 border-2 border-white/20 hover:border-white p-8 md:p-12 flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:bg-white hover:text-blue-base"
+                                    >
+                                        <div className="p-4 border-2 border-current rounded-full mb-2">
+                                            {SECTOR_INFO[sector]?.icon}
+                                        </div>
+                                        <div className="text-3xl font-bold uppercase tracking-widest">{sector}</div>
+                                        <div className="opacity-60 text-xs font-mono group-hover:opacity-100">{SECTOR_INFO[sector]?.desc}</div>
+                                    </button>
+                                ))}
+                           </div>
+                       </motion.div>
+                   ) : (
+                       <motion.div
+                           key={toolSearchQuery ? 'search' : currentSectorIndex}
+                           initial={{ opacity: 0, x: 100 }}
+                           animate={{ opacity: 1, x: 0 }}
+                           exit={{ opacity: 0, x: -100 }}
+                           transition={{ duration: 0.4, ease: "easeOut" }}
+                           className="w-full flex flex-col md:flex-row gap-8 lg:gap-12 h-[85vh]"
+                       >
+                           {/* Left: Sector Title & Info (30% on desktop) */}
+                           <div className="md:w-[30%] flex flex-col justify-center items-start md:border-l-8 md:border-white md:pl-8 lg:pl-12 flex-shrink-0">
+                               <div className="mb-4 text-sm font-bold uppercase tracking-[0.2em] opacity-60 flex items-center gap-4">
+                                   {toolSearchQuery ? (
+                                       <button onClick={clearVantaSearch} className="flex items-center gap-2 hover:text-white/80 transition-colors">
+                                           <ArrowLeft size={16} /> BACK TO SECTORS
+                                       </button>
+                                   ) : (
+                                       <>
+                                           <button 
+                                                onClick={() => setCurrentSectorIndex(0)}
+                                                className="hover:text-blue-300 transition-colors"
+                                                title="Return Home"
+                                           >
+                                                <Home size={18} />
+                                           </button>
+                                           <div className="h-4 w-px bg-white/30" />
+                                           <span>Sector {String(currentSectorIndex).padStart(2, '0')}</span>
+                                           <span className="w-12 h-0.5 bg-white/50"></span>
+                                           <span>{String(SECTORS.length - 1).padStart(2, '0')}</span>
+                                       </>
+                                   )}
+                               </div>
+                               
+                               <h2 className="text-[10vw] md:text-[6vw] font-bold uppercase leading-[0.8] tracking-tighter mb-8 break-words w-full">
+                                   {toolSearchQuery ? 'SEARCH RESULTS' : SECTORS[currentSectorIndex]}
+                               </h2>
+
+                               {!toolSearchQuery && (
+                                   <div className="flex items-center gap-6 opacity-80 mt-auto">
+                                       <div className="p-4 border-2 border-white rounded-full">
+                                           {sectorInfo?.icon}
+                                       </div>
+                                       <div className="text-xl lg:text-2xl font-light uppercase tracking-wider max-w-md leading-tight">
+                                           {sectorInfo?.desc}
+                                       </div>
+                                   </div>
+                               )}
+                           </div>
+
+                           {/* Right: Tool Grid */}
+                           <div className="flex-1 overflow-y-auto hide-scrollbar border-t-2 border-white/20 md:border-t-0 pt-8 md:pt-0 h-full">
+                               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full min-h-full" style={{ gridAutoRows: 'minmax(200px, 1fr)' }}>
+                                   {filteredTools.map((tool) => (
+                                       <div 
+                                            key={tool.id} 
+                                            className="relative h-full bg-white p-[2px] cursor-pointer group transition-transform duration-300 hover:-translate-y-1"
+                                            style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%)' }}
+                                            onClick={() => navigate(tool.path)}
+                                       >
+                                           <div 
+                                                className="h-full w-full bg-[#0047FF] hover:bg-white hover:text-[#0047FF] transition-colors p-6 flex flex-col justify-between"
+                                                style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%)' }}
+                                           >
+                                               <div className="flex justify-between items-start mb-2">
+                                                   <span className="text-[10px] font-bold uppercase opacity-50 group-hover:opacity-100 border border-current px-2 py-0.5 rounded-full">{tool.number.split('/')[0]}</span>
+                                                   <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity -rotate-45 group-hover:rotate-0" />
+                                               </div>
+                                               
+                                               <div>
+                                                   <h3 className="text-3xl font-black uppercase tracking-tighter leading-none mb-4 truncate">{tool.title}</h3>
+                                                   <p className="text-xs font-mono opacity-60 leading-relaxed group-hover:opacity-100 line-clamp-3">
+                                                       {tool.description}
+                                                   </p>
+                                               </div>
+                                           </div>
+                                       </div>
+                                   ))}
+                                   
+                                   {filteredTools.length === 0 && (
+                                       <div className="col-span-full w-full py-20 text-center border-2 border-dashed border-white/20 opacity-50 uppercase font-bold tracking-widest rounded-lg flex flex-col items-center justify-center">
+                                           <div className="text-4xl mb-4">ø</div>
+                                           No modules found
+                                       </div>
+                                   )}
+                               </div>
+                           </div>
+                       </motion.div>
+                   )}
+               </AnimatePresence>
+
+           </div>
+           
+           {/* Background Watermark */}
+           <div className="fixed bottom-[-5vw] left-[-2vw] text-[25vw] font-bold leading-none text-white opacity-[0.03] pointer-events-none select-none z-0 tracking-tighter">
+               {isHomeSlide ? 'BETA' : SECTORS[currentSectorIndex]}
+           </div>
+        </div>
+      );
+  }
 
   // --- FLUID THEME LAYOUT ---
   if (theme === 'fluid') {

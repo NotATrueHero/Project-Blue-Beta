@@ -22,13 +22,13 @@ export const useNavigate = () => {
   };
 };
 
-export const Link: React.FC<{to: string; children: React.ReactNode; className?: string}> = ({ to, children, className }) => {
+export const Link: React.FC<{to: string; children: React.ReactNode; className?: string; style?: React.CSSProperties; onMouseEnter?: () => void; onMouseLeave?: () => void}> = ({ to, children, className, style, onMouseEnter, onMouseLeave }) => {
     const navigate = useNavigate();
     const handleClick = (e: React.MouseEvent) => {
         e.preventDefault();
         navigate(to);
     };
-    return <a href={`#${to}`} onClick={handleClick} className={className}>{children}</a>;
+    return <a href={`#${to}`} onClick={handleClick} className={className} style={style} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>{children}</a>;
 };
 
 interface LayoutProps {
@@ -107,6 +107,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
   // Theme colors
   const getBgClass = () => {
+      if (theme === 'vanta') return 'bg-[#0047FF]'; // Restore Blue Base
       if (theme === 'stealth') return 'bg-[#020617]';
       if (theme === 'fluid') {
           // Dynamic gradient based on accent
@@ -123,11 +124,9 @@ export const Layout: React.FC<LayoutProps> = ({
   
   const getAccentClass = () => {
       switch(theme) {
+          case 'vanta': return 'bg-white/10 border border-white/20 backdrop-blur-sm';
           case 'stealth': return 'bg-white/5';
           case 'fluid': 
-                // We use a generic subtle background for standard elements in Fluid, 
-                // the specific accent color is mostly used inside Dashboard.
-                // But we can tint the glass slightly if needed.
                 return 'bg-white/5 backdrop-blur-md border border-white/10';
           default: return 'bg-blue-base/20';
       }
@@ -180,8 +179,8 @@ export const Layout: React.FC<LayoutProps> = ({
                 )}
             </AnimatePresence>
           
-            {/* System Status / Telemetry - Hidden on Fluid home for minimalism (moved to sidebar) */}
-            {!(theme === 'fluid' && isHome) && (
+            {/* System Status / Telemetry - Hidden on Fluid home AND Vanta mode for minimalism */}
+            {!(theme === 'fluid' && isHome) && theme !== 'vanta' && (
                 <motion.div layout className="text-left flex flex-col justify-center">
                     {greetingEnabled && (
                         <div className="text-[9px] md:text-[10px] font-bold tracking-widest uppercase opacity-70 mb-0.5">
@@ -221,9 +220,9 @@ export const Layout: React.FC<LayoutProps> = ({
 
         {/* Right Side: Music & View Toggle */}
         <div className="pointer-events-auto flex items-center gap-2 md:gap-4 z-50">
-             {/* View Toggle (Grid/List) - HIDDEN IN FLUID MODE */}
+             {/* View Toggle (Grid/List) - HIDDEN IN FLUID & VANTA MODE */}
             <AnimatePresence>
-                {showViewToggle && onToggleView && viewMode && theme !== 'fluid' && (
+                {showViewToggle && onToggleView && viewMode && theme !== 'fluid' && theme !== 'vanta' && (
                     <motion.button
                         initial={{ opacity: 0, width: 0, scale: 0.8 }}
                         animate={{ opacity: 1, width: 'auto', scale: 1 }}

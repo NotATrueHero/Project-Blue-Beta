@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert, Info, Droplets, Palette } from 'lucide-react';
+import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert, Info, Droplets, Palette, Box } from 'lucide-react';
 import { UserData, Theme, MusicPlaylist, LoopMode, WidgetPosition, LinkOpenMode, FluidAccent } from '../types';
 
 interface ConfigProps {
@@ -222,10 +222,10 @@ export const Config: React.FC<ConfigProps> = ({
                 {/* Theme Selector */}
                 <div>
                     <div className="font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
-                            {currentTheme === 'fluid' ? <Droplets size={16} /> : currentTheme === 'standard' ? <Eye size={16} /> : <EyeOff size={16} />}
+                            {currentTheme === 'fluid' ? <Droplets size={16} /> : currentTheme === 'vanta' ? <Box size={16} /> : currentTheme === 'standard' ? <Eye size={16} /> : <EyeOff size={16} />}
                             <span>Visual Theme</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                         <button 
                             onClick={() => onThemeChange('standard')}
                             className={`border border-white py-2 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all ${currentTheme === 'standard' ? 'bg-white text-black' : 'text-white'}`}
@@ -244,11 +244,18 @@ export const Config: React.FC<ConfigProps> = ({
                         >
                             Fluid
                         </button>
+                        <button 
+                            onClick={() => onThemeChange('vanta')}
+                            className={`border border-white py-2 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all ${currentTheme === 'vanta' ? 'bg-white text-black' : 'text-white'}`}
+                        >
+                            Minimal V2
+                        </button>
                     </div>
                     <div className="text-xs opacity-60 mt-2">
                         {currentTheme === 'standard' && 'High-contrast tactical blue.'}
                         {currentTheme === 'stealth' && 'Low-light tactical slate.'}
                         {currentTheme === 'fluid' && 'Modern studio aesthetic. Teal/Cyan gradient.'}
+                        {currentTheme === 'vanta' && 'Ultra-minimal deep black. List interface.'}
                     </div>
                 </div>
 
@@ -323,8 +330,8 @@ export const Config: React.FC<ConfigProps> = ({
                     )}
                 </div>
 
-                {/* Widget Position (Hidden in Fluid Mode generally, but kept for logic) */}
-                <div className={currentTheme === 'fluid' ? 'opacity-30 pointer-events-none' : ''}>
+                {/* Widget Position (Hidden in Fluid/Vanta Mode) */}
+                <div className={currentTheme === 'fluid' || currentTheme === 'vanta' ? 'opacity-30 pointer-events-none' : ''}>
                      <div className="font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
                          <LayoutTemplate size={16} /> System Widget
                      </div>
