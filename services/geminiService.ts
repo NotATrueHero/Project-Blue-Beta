@@ -1,4 +1,21 @@
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+
+// Native Fetch Implementation for Gemini API
+// No external SDK dependencies required
+
+export interface ChatMessage {
+    role: 'user' | 'model';
+    parts: { text?: string; inlineData?: { mimeType: string; data: string } }[];
+}
+
+export interface StreamChatParams {
+    apiKey: string;
+    model: string;
+    history: ChatMessage[];
+    message: string;
+    files: { mimeType: string; data: string }[]; // Base64 without prefix
+    systemInstruction?: string;
+    useSearch?: boolean;
+}
 
 // Safe accessor for API Key
 export const getApiKey = (): string | undefined => {
@@ -15,22 +32,6 @@ export const getApiKey = (): string | undefined => {
   return undefined;
 };
 
-export interface ChatMessage {
-    role: 'user' | 'model';
-    parts: { text?: string; inlineData?: { mimeType: string; data: string } }[];
-}
-
-interface StreamChatParams {
-    apiKey: string;
-    model: string;
-    history: ChatMessage[];
-    message: string;
-    files: { mimeType: string; data: string }[]; // Base64 without prefix
-    systemInstruction?: string;
-    useSearch?: boolean;
-    thinkingBudget?: number;
-}
-
 export const streamChat = async ({
     apiKey,
     model,
@@ -38,65 +39,101 @@ export const streamChat = async ({
     message,
     files,
     systemInstruction,
-    useSearch,
-    thinkingBudget
+    useSearch
 }: StreamChatParams) => {
-    const ai = new GoogleGenAI({ apiKey });
-
-    // Filter valid config options based on model family
-    const tools = useSearch ? [{ googleSearch: {} }] : undefined;
     
-    // Thinking config is only for 2.5 models and when budget > 0
-    const thinkingConfig = (thinkingBudget && thinkingBudget > 0 && model.includes('2.5')) 
-        ? { thinkingBudget } 
-        : undefined;
+    // Construct request body for REST API
+    const contents = history.map(h => ({
+        role: h.role,
+        parts: h.parts.map(p => {
+            if (p.inlineData) {
+                return { inline_data: { mime_type: p.inlineData.mimeType, data: p.inlineData.data } };
+            }
+            return { text: p.text };
+        })
+    }));
 
-    const chat = ai.chats.create({
-        model,
-        config: {
-            systemInstruction,
-            tools,
-            thinkingConfig
-        },
-        history: history.map(h => ({
-            role: h.role,
-            parts: h.parts.map(p => {
-                if (p.inlineData) {
-                     return { inlineData: { mimeType: p.inlineData.mimeType, data: p.inlineData.data } };
-                }
-                return { text: p.text };
-            })
-        }))
-    });
-
-    const userParts: any[] = [];
-    if (message) userParts.push({ text: message });
-    files.forEach(f => {
-        userParts.push({ inlineData: { mimeType: f.mimeType, data: f.data } });
-    });
-
-    const result = await chat.sendMessageStream({ message: userParts });
-    return { stream: result };
-};
-
-export const generateSpeech = async (apiKey: string, text: string): Promise<string | undefined> => {
-    try {
-        const ai = new GoogleGenAI({ apiKey });
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-preview-tts",
-            contents: { parts: [{ text }] },
-            config: {
-                responseModalities: ['AUDIO'],
-                speechConfig: {
-                    voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName: 'Kore' },
-                    },
-                },
-            },
+    // Add current message
+    const currentParts: any[] = [];
+    if (files && files.length > 0) {
+        files.forEach(f => {
+            currentParts.push({ inline_data: { mime_type: f.mimeType, data: f.data } });
         });
-        return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    } catch (e) {
-        console.error("TTS Generation failed", e);
-        return undefined;
     }
+    if (message) {
+        currentParts.push({ text: message });
+    }
+    
+    if (currentParts.length > 0) {
+        contents.push({ role: 'user', parts: currentParts });
+    }
+
+    const tools = useSearch ? [{ google_search: {} }] : undefined;
+
+    const body = {
+        contents,
+        system_instruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
+        tools
+    };
+
+    // Use SSE (Server-Sent Events) endpoint
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${apiKey}&alt=sse`;
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+        throw new Error(`Gemini API Error: ${response.status} ${response.statusText}`);
+    }
+
+    if (!response.body) throw new Error("No response body received");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    // Generator function to yield parsed chunks
+    const stream = (async function* () {
+        let buffer = '';
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+            
+            const lines = buffer.split('\n');
+            // Keep the last partial line in the buffer
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const jsonStr = line.slice(6);
+                    if (jsonStr === '[DONE]') continue;
+                    
+                    try {
+                        const data = JSON.parse(jsonStr);
+                        // Map structure to match what Oracle.tsx expects
+                        // Oracle expects chunk.text and chunk.candidates[0].groundingMetadata
+                        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        
+                        yield {
+                            text,
+                            candidates: data.candidates,
+                            // Pass through raw data just in case
+                            raw: data
+                        };
+                    } catch (e) {
+                        // Ignore parse errors for partial chunks
+                    }
+                }
+            }
+        }
+    })();
+
+    return { stream };
 };

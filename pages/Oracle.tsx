@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Cpu, AlertTriangle, Paperclip, X, Settings, Globe, Brain, Image as ImageIcon, FileText } from 'lucide-react';
+import { Send, Cpu, AlertTriangle, Paperclip, X, Settings, Globe, Image as ImageIcon, FileText } from 'lucide-react';
 import { getApiKey, streamChat, ChatMessage } from '../services/geminiService';
 
 // --- Types ---
@@ -22,9 +22,8 @@ interface AttachedFile {
 }
 
 const MODELS = [
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Fast, Efficient' },
-    { id: 'gemini-3-pro-preview', name: 'Gemini 3.0 Pro', desc: 'Complex Reasoning' },
-    { id: 'gemini-2.5-flash-thinking', name: 'Gemini 2.5 Thinking', desc: 'Enhanced Logic' },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'Fast, Efficient' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Complex Reasoning' },
 ];
 
 export const Oracle: React.FC = () => {
@@ -40,7 +39,6 @@ export const Oracle: React.FC = () => {
     const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
     const [systemInstruction, setSystemInstruction] = useState('You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone.');
     const [useSearch, setUseSearch] = useState(false);
-    const [thinkingBudget, setThinkingBudget] = useState(0);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,7 +52,7 @@ export const Oracle: React.FC = () => {
         setMessages([{
             id: 'init',
             role: 'model',
-            parts: [{ text: 'Oracle System v3.0 Online. Awaiting multi-modal input.' }],
+            parts: [{ text: 'Oracle System v1.5 Online. Awaiting multi-modal input.' }],
             timestamp: Date.now()
         }]);
     }, []);
@@ -142,8 +140,7 @@ export const Oracle: React.FC = () => {
                 message: currentInput,
                 files: currentFiles.map(f => ({ mimeType: f.mimeType, data: f.base64 })),
                 systemInstruction,
-                useSearch,
-                thinkingBudget
+                useSearch
             });
 
             // Init Model Response
@@ -269,7 +266,6 @@ export const Oracle: React.FC = () => {
                         <div className="text-xs font-mono opacity-70 flex items-center gap-2">
                             <span>{MODELS.find(m => m.id === selectedModel)?.name}</span>
                             {useSearch && <span className="text-blue-300"> // SEARCH ON</span>}
-                            {thinkingBudget > 0 && <span className="text-yellow-300"> // THINKING ON</span>}
                         </div>
                     </div>
                 </div>
@@ -302,7 +298,7 @@ export const Oracle: React.FC = () => {
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-widest mb-2 opacity-70">Core Model</label>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 gap-2">
                                         {MODELS.map(m => (
                                             <button 
                                                 key={m.id}
@@ -328,24 +324,6 @@ export const Oracle: React.FC = () => {
                                         </div>
                                         <div className="text-xs font-bold uppercase">Google Search Grounding</div>
                                     </button>
-
-                                    {/* Thinking Budget only for 2.5 models that aren't Flash-Lite ideally, but we allow user to try */}
-                                    {selectedModel.includes('2.5') && (
-                                        <div className="border border-white/50 p-3">
-                                            <div className="flex justify-between text-xs font-bold uppercase mb-2">
-                                                <div className="flex items-center gap-2"><Brain size={12} /> Thinking Budget</div>
-                                                <div>{thinkingBudget} Tokens</div>
-                                            </div>
-                                            <input 
-                                                type="range" 
-                                                min="0" max="8192" step="1024" 
-                                                value={thinkingBudget}
-                                                onChange={(e) => setThinkingBudget(parseInt(e.target.value))}
-                                                className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white"
-                                            />
-                                            <div className="text-[10px] opacity-50 mt-1">Set to 0 to disable extended reasoning.</div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
 
@@ -387,7 +365,7 @@ export const Oracle: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className={`p-4 backdrop-blur-md ${msg.role === 'user' ? 'bg-white text-blue-base text-right rounded-bl-xl' : 'bg-[#0047FF]/20 rounded-br-xl border-2 border-white/20'}`}>
+                        <div className={`p-4 backdrop-blur-md ${msg.role === 'user' ? 'bg-white text-blue-base text-right rounded-bl-xl border-2 border-white' : 'bg-[#0047FF]/20 rounded-br-xl border-2 border-white/20'}`}>
                             {/* Attachments */}
                             {msg.parts.some(p => p.inlineData) && (
                                 <div className="flex flex-wrap gap-2 mb-3 justify-end">
