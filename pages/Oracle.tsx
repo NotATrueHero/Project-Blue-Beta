@@ -2,8 +2,7 @@ import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Cpu, AlertTriangle } from 'lucide-react';
-import { Chat } from '@google/genai';
-import { createOracleChat, sendMessageToOracle } from '../services/geminiService';
+import { createOracleChat, sendMessageToOracle, ChatSession } from '../services/geminiService';
 
 interface Message {
   role: 'user' | 'model';
@@ -16,10 +15,10 @@ export const Oracle: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [chatSession, setChatSession] = useState<Chat | null>(null);
+  const [chatSession, setChatSession] = useState<ChatSession | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  // Check both env and local storage to prevent false offline state
+  // Check both env and local storage
   const apiKeyAvailable = !!(process.env.API_KEY || localStorage.getItem('blue_api_key'));
 
   useEffect(() => {
@@ -73,7 +72,7 @@ export const Oracle: React.FC = () => {
                <div>
                    <h1 className="text-2xl font-bold uppercase tracking-widest">Oracle</h1>
                    <div className="text-xs font-mono opacity-70">
-                       Model: Gemini 2.5 Flash // Latency: Low
+                       Model: Gemini 1.5 Flash // Latency: Low
                    </div>
                </div>
            </div>
