@@ -1,26 +1,27 @@
 
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
-import { Link } from '../components/Layout';
+import { Link, useNavigate } from '../components/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, ExternalLink, X } from 'lucide-react';
+import { Search, Plus, ExternalLink, X, Terminal, ArrowRight } from 'lucide-react';
 import { ViewMode, ToolItem, WidgetPosition, QuickLink, LinkOpenMode } from '../types';
 
 const tools: ToolItem[] = [
-  { id: 'uplink', number: '01 / Network', category: 'Web', title: 'Uplink', description: 'Stored coordinates for external network navigation and quick access.', path: '/uplink', imageText: 'NET BRIDGE' },
-  { id: 'notes', number: '02 / System', category: 'Notes', title: 'Notes', description: 'Access classified logs, personal entries, and daily observations.', path: '/notes', imageText: 'NOTES UI' },
-  { id: 'tasks', number: '03 / System', category: 'Tasks', title: 'Tasks', description: 'Manage mission objectives and daily operations with real-time tracking.', path: '/tasks', imageText: 'TASK LOG' },
-  { id: 'ide', number: '04 / Dev', category: 'Code', title: 'Script Terminal', description: 'Client-side code execution environment. Supports interactive Python and JavaScript.', path: '/ide', imageText: 'SCRIPT EXEC' },
-  { id: 'news', number: '05 / Network', category: 'Intel', title: 'Live Intel', description: 'Real-time global information streams and technology updates.', path: '/news', imageText: 'NEWS FEED' },
-  { id: 'weather', number: '06 / Sensor', category: 'Env', title: 'Atmospherics', description: 'Local meteorological data and environmental forecasting.', path: '/weather', imageText: 'WEATHER' },
-  { id: 'chronos', number: '07 / Protocol', category: 'Time', title: 'Chronos', description: 'Tactical countdown timer for operational focus intervals.', path: '/chronos', imageText: 'TIMER' },
-  { id: 'oracle', number: '08 / AI', category: 'Oracle', title: 'Oracle', description: 'Secure channel to the Project Blue artificial intelligence core.', path: '/oracle', imageText: 'AI CORE' },
-  { id: 'music', number: '09 / Media', category: 'Audio', title: 'Music', description: 'System audio player and frequency management.', path: '/music', imageText: 'AUDIO' },
-  { id: 'whiteboard', number: '10 / Tac-Ops', category: 'Canvas', title: 'Whiteboard', description: 'Tactical diagramming surface. Capture schematics directly to the vault.', path: '/whiteboard', imageText: 'DIAGRAM' },
-  { id: 'files', number: '11 / Storage', category: 'Files', title: 'Intel', description: 'Secure vault for encoding and storing classified schematics.', path: '/files', imageText: 'VAULT' },
-  { id: 'cipher', number: '12 / Security', category: 'Crypto', title: 'Cipher', description: 'Cryptographic translation engine for secure message encoding.', path: '/cipher', imageText: 'ENCRYPT' },
-  { id: 'games', number: '13 / Sim', category: 'Games', title: 'Games', description: 'Cognitive training simulations and probability engines.', path: '/games', imageText: 'SIMULATE' },
-  { id: 'config', number: '14 / System', category: 'Config', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP' },
+  { id: 'uplink', number: '01 / Network', category: 'Web', title: 'Uplink', description: 'Stored coordinates for external network navigation and quick access.', path: '/uplink', imageText: 'NET BRIDGE', keywords: ['internet', 'browser', 'web', 'bookmark', 'link', 'google'] },
+  { id: 'notes', number: '02 / System', category: 'Notes', title: 'Notes', description: 'Access classified logs, personal entries, and daily observations.', path: '/notes', imageText: 'NOTES UI', keywords: ['text', 'write', 'journal', 'log', 'diary', 'editor'] },
+  { id: 'tasks', number: '03 / System', category: 'Tasks', title: 'Tasks', description: 'Manage mission objectives and daily operations with real-time tracking.', path: '/tasks', imageText: 'TASK LOG', keywords: ['todo', 'list', 'check', 'job', 'work'] },
+  { id: 'ide', number: '04 / Dev', category: 'Code', title: 'Script Terminal', description: 'Client-side code execution environment. Supports interactive Python and JavaScript.', path: '/ide', imageText: 'SCRIPT EXEC', keywords: ['code', 'python', 'js', 'javascript', 'program', 'develop', 'terminal'] },
+  { id: 'calculator', number: '05 / Math', category: 'Calc', title: 'Calculator', description: 'Advanced computational matrix with trigonometric and exponential functions.', path: '/calculator', imageText: 'CALC', keywords: ['math', 'add', 'subtract', 'multiply', 'number', 'count'] },
+  { id: 'news', number: '06 / Network', category: 'Intel', title: 'Live Intel', description: 'Real-time global information streams and technology updates.', path: '/news', imageText: 'NEWS FEED', keywords: ['rss', 'world', 'info', 'current', 'tech'] },
+  { id: 'weather', number: '07 / Sensor', category: 'Env', title: 'Atmospherics', description: 'Local meteorological data and environmental forecasting.', path: '/weather', imageText: 'WEATHER', keywords: ['atmospherics', 'atmospheric', 'weather', 'rain', 'sun', 'temp', 'forecast', 'climate', 'temperature', 'meteo'] },
+  { id: 'chronos', number: '08 / Protocol', category: 'Time', title: 'Chronos', description: 'Tactical countdown timer for operational focus intervals.', path: '/chronos', imageText: 'TIMER', keywords: ['clock', 'watch', 'stopwatch', 'alarm', 'focus'] },
+  { id: 'oracle', number: '09 / AI', category: 'Oracle', title: 'Oracle', description: 'Secure channel to the Project Blue artificial intelligence core.', path: '/oracle', imageText: 'AI CORE', keywords: ['gemini', 'gpt', 'chat', 'bot', 'ask', 'question', 'help'] },
+  { id: 'music', number: '10 / Media', category: 'Audio', title: 'Music', description: 'System audio player and frequency management.', path: '/music', imageText: 'AUDIO', keywords: ['song', 'mp3', 'sound', 'listen', 'play', 'media'] },
+  { id: 'whiteboard', number: '11 / Tac-Ops', category: 'Canvas', title: 'Whiteboard', description: 'Tactical diagramming surface. Capture schematics directly to the vault.', path: '/whiteboard', imageText: 'DIAGRAM', keywords: ['draw', 'paint', 'sketch', 'image', 'art'] },
+  { id: 'files', number: '12 / Storage', category: 'Files', title: 'Intel', description: 'Secure vault for encoding and storing classified schematics.', path: '/files', imageText: 'VAULT', keywords: ['file', 'save', 'folder', 'document', 'upload', 'drive', 'data'] },
+  { id: 'cipher', number: '13 / Security', category: 'Crypto', title: 'Cipher', description: 'Cryptographic translation engine for secure message encoding.', path: '/cipher', imageText: 'ENCRYPT', keywords: ['secret', 'hide', 'encode', 'decode', 'hash', 'security'] },
+  { id: 'games', number: '14 / Sim', category: 'Games', title: 'Games', description: 'Cognitive training simulations and probability engines.', path: '/games', imageText: 'SIMULATE', keywords: ['play', 'fun', 'chess', 'arcade'] },
+  { id: 'config', number: '15 / System', category: 'Config', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP', keywords: ['settings', 'option', 'preferences', 'theme', 'admin'] },
 ];
 
 interface DashboardProps {
@@ -32,14 +33,59 @@ interface DashboardProps {
     linkOpenMode: LinkOpenMode;
 }
 
+interface SystemWidgetProps {
+    mode: 'hero' | 'card';
+    linkOpenMode: LinkOpenMode;
+    toolSearchQuery: string;
+    onToolSearch: (query: string) => void;
+}
+
 // Reusable System Widget Component
-const SystemWidget: React.FC<{ mode: 'hero' | 'card', linkOpenMode: LinkOpenMode }> = ({ mode, linkOpenMode }) => {
+const SystemWidget: React.FC<SystemWidgetProps> = ({ mode, linkOpenMode, toolSearchQuery, onToolSearch }) => {
     const [time, setTime] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
     const [quickLinks, setQuickLinks] = useState<QuickLink[]>([]);
     const [isAddingLink, setIsAddingLink] = useState(false);
     const [newLinkTitle, setNewLinkTitle] = useState('');
     const [newLinkUrl, setNewLinkUrl] = useState('');
+    const [selectedIndex, setSelectedIndex] = useState(-1);
+    const navigate = useNavigate();
+
+    // Refs for auto-scroll visibility
+    const netSearchRef = useRef<HTMLInputElement>(null);
+    const toolSearchRef = useRef<HTMLInputElement>(null);
+
+    // Helper to scroll input into view if typing while off-screen
+    const ensureVisible = (ref: React.RefObject<HTMLInputElement>) => {
+        if (ref.current) {
+            const rect = ref.current.getBoundingClientRect();
+            // Check visibility with buffer for fixed header (approx 80px)
+            const inViewport = 
+                rect.top >= 80 && 
+                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight);
+            
+            if (!inViewport) {
+                ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    };
+
+    // Suggestion Logic
+    const suggestions = React.useMemo(() => {
+        if (!toolSearchQuery) return [];
+        const q = toolSearchQuery.toLowerCase();
+        return tools.filter(tool => 
+            tool.id.toLowerCase().includes(q) ||
+            tool.title.toLowerCase().includes(q) ||
+            tool.description.toLowerCase().includes(q) ||
+            tool.category.toLowerCase().includes(q) ||
+            tool.keywords?.some(k => k.toLowerCase().includes(q))
+        ).slice(0, 5); // Limit to 5 suggestions
+    }, [toolSearchQuery]);
+
+    useEffect(() => {
+        setSelectedIndex(-1);
+    }, [toolSearchQuery]);
 
     useEffect(() => {
         const timer = setInterval(() => setTime(new Date()), 1000);
@@ -69,6 +115,36 @@ const SystemWidget: React.FC<{ mode: 'hero' | 'card', linkOpenMode: LinkOpenMode
             linkOpenMode === 'new_tab' ? '_blank' : '_self'
         );
         setSearchQuery('');
+    };
+
+    const handleToolSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const target = selectedIndex >= 0 ? suggestions[selectedIndex] : suggestions[0];
+        if (target) {
+            navigate(target.path);
+            onToolSearch('');
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (!suggestions.length) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedIndex(prev => (prev + 1) % suggestions.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedIndex(prev => (prev - 1 + suggestions.length) % suggestions.length);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            const target = selectedIndex >= 0 ? suggestions[selectedIndex] : suggestions[0];
+            if (target) {
+                navigate(target.path);
+                onToolSearch('');
+            }
+        } else if (e.key === 'Escape') {
+            onToolSearch('');
+        }
     };
 
     const saveQuickLinks = (updated: QuickLink[]) => {
@@ -102,24 +178,76 @@ const SystemWidget: React.FC<{ mode: 'hero' | 'card', linkOpenMode: LinkOpenMode
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.8 }}
-                className="flex flex-col md:flex-row items-center gap-4 md:gap-6 mt-12 z-20 w-full max-w-xl px-6"
+                className="flex flex-col md:flex-row items-stretch gap-4 md:gap-6 mt-12 z-20 w-full max-w-4xl px-6"
             >
                 {/* CLOCK */}
                 <div className="h-14 flex items-center justify-center border-2 border-white px-6 font-mono text-xl md:text-2xl font-bold tracking-widest bg-white/5 backdrop-blur-sm whitespace-nowrap min-w-[140px]">
                     {time.toLocaleTimeString([], { hour12: false })}
                 </div>
 
-                {/* SEARCH */}
-                <form onSubmit={handleSearch} className="flex-1 w-full h-14 flex relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={18} />
-                    <input 
-                        type="text" 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="NET SEARCH..."
-                        className="w-full h-full bg-white/5 backdrop-blur-sm border-2 border-white pl-12 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors"
-                    />
-                </form>
+                {/* SEARCH GROUP */}
+                <div className="flex-1 flex flex-col md:flex-row gap-4 w-full">
+                    {/* NET SEARCH */}
+                    <form onSubmit={handleSearch} className="flex-1 h-14 flex relative group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={18} />
+                        <input 
+                            ref={netSearchRef}
+                            type="text" 
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                ensureVisible(netSearchRef);
+                            }}
+                            placeholder="NET SEARCH..."
+                            className="w-full h-full bg-white/5 backdrop-blur-sm border-2 border-white pl-12 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors"
+                        />
+                    </form>
+
+                    {/* TOOL SEARCH */}
+                    <div className="flex-1 h-14 flex relative group z-50">
+                        <Terminal className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={18} />
+                        <form onSubmit={handleToolSubmit} className="w-full h-full">
+                            <input 
+                                ref={toolSearchRef}
+                                type="text" 
+                                value={toolSearchQuery}
+                                onChange={(e) => {
+                                    onToolSearch(e.target.value);
+                                    ensureVisible(toolSearchRef);
+                                }}
+                                onKeyDown={handleKeyDown}
+                                placeholder="FIND TOOL..."
+                                className="w-full h-full bg-white/5 backdrop-blur-sm border-2 border-white pl-12 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors"
+                            />
+                        </form>
+                        
+                        {/* SUGGESTIONS DROPDOWN */}
+                        <AnimatePresence>
+                            {suggestions.length > 0 && toolSearchQuery && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="absolute top-full left-0 right-0 mt-2 border-2 border-white bg-blue-base shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden"
+                                >
+                                    {suggestions.map((tool, i) => (
+                                        <div 
+                                            key={tool.id}
+                                            onClick={() => { navigate(tool.path); onToolSearch(''); }}
+                                            className={`flex items-center justify-between p-3 border-b border-white/20 last:border-0 cursor-pointer transition-colors group ${i === selectedIndex ? 'bg-white text-blue-base' : 'hover:bg-white hover:text-blue-base'}`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 w-8">{tool.number.split('/')[0]}</div>
+                                                <div className="font-bold uppercase tracking-wider text-sm">{tool.title}</div>
+                                            </div>
+                                            <ArrowRight size={14} className={`transition-opacity ${i === selectedIndex ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+                                        </div>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
             </motion.div>
         );
     }
@@ -127,21 +255,70 @@ const SystemWidget: React.FC<{ mode: 'hero' | 'card', linkOpenMode: LinkOpenMode
     // Card Mode (Tool Grid) - With Quick Launch
     return (
         <div className="w-full h-full flex flex-col justify-center gap-4">
-             {/* Clock & Search - Stacked Vertically in Grid for better width */}
+             {/* Clock & Searches - Stacked Vertically in Grid for better width */}
              <div className="flex flex-col gap-4 w-full">
                 <div className="w-full h-16 flex items-center justify-center border-2 border-white font-mono text-2xl font-bold tracking-widest bg-white/5 px-6">
                     {time.toLocaleTimeString([], { hour12: false })}
                 </div>
+                
                 <form onSubmit={handleSearch} className="w-full h-16 flex relative">
                     <Search className="absolute left-6 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={24} />
                     <input 
+                        ref={netSearchRef}
                         type="text" 
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            ensureVisible(netSearchRef);
+                        }}
                         placeholder="NET SEARCH..."
                         className="w-full h-full bg-white/5 border-2 border-white pl-14 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors text-lg"
                     />
                 </form>
+
+                <div className="w-full h-16 flex relative z-50">
+                    <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={24} />
+                    <form onSubmit={handleToolSubmit} className="w-full h-full">
+                        <input 
+                            ref={toolSearchRef}
+                            type="text" 
+                            value={toolSearchQuery}
+                            onChange={(e) => {
+                                onToolSearch(e.target.value);
+                                ensureVisible(toolSearchRef);
+                            }}
+                            onKeyDown={handleKeyDown}
+                            placeholder="FIND TOOL..."
+                            className="w-full h-full bg-white/5 border-2 border-white pl-14 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors text-lg"
+                        />
+                    </form>
+                    
+                    {/* SUGGESTIONS DROPDOWN (Card Mode) */}
+                    <AnimatePresence>
+                        {suggestions.length > 0 && toolSearchQuery && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 10 }}
+                                className="absolute top-full left-0 right-0 mt-2 border-2 border-white bg-blue-base shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden z-50"
+                            >
+                                {suggestions.map((tool, i) => (
+                                    <div 
+                                        key={tool.id}
+                                        onClick={() => { navigate(tool.path); onToolSearch(''); }}
+                                        className={`flex items-center justify-between p-3 border-b border-white/20 last:border-0 cursor-pointer transition-colors group ${i === selectedIndex ? 'bg-white text-blue-base' : 'hover:bg-white hover:text-blue-base'}`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 w-8">{tool.number.split('/')[0]}</div>
+                                            <div className="font-bold uppercase tracking-wider text-sm">{tool.title}</div>
+                                        </div>
+                                        <ArrowRight size={14} className={`transition-opacity ${i === selectedIndex ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+                                    </div>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
              </div>
 
              {/* Quick Launch Speed Dial */}
@@ -209,6 +386,7 @@ const SystemWidget: React.FC<{ mode: 'hero' | 'card', linkOpenMode: LinkOpenMode
 export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect, widgetPosition, greetingEnabled, greetingText, linkOpenMode }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
+  const [toolSearchQuery, setToolSearchQuery] = useState('');
 
   useEffect(() => {
     // Use IntersectionObserver for robust visibility detection
@@ -228,6 +406,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
 
     return () => observer.disconnect();
   }, [onHeroIntersect]);
+
+  // Filter tools based on search query
+  const filteredTools = tools.filter(tool => {
+      const q = toolSearchQuery.toLowerCase();
+      return (
+          tool.id.toLowerCase().includes(q) ||
+          tool.title.toLowerCase().includes(q) ||
+          tool.description.toLowerCase().includes(q) ||
+          tool.category.toLowerCase().includes(q) ||
+          tool.keywords?.some(k => k.toLowerCase().includes(q))
+      );
+  });
 
   return (
     <>
@@ -276,7 +466,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
             </motion.div>
 
             {/* UTILITY BAR (Hero Mode) */}
-            {widgetPosition === 'hero' && <SystemWidget mode="hero" linkOpenMode={linkOpenMode} />}
+            {widgetPosition === 'hero' && (
+                <SystemWidget 
+                    mode="hero" 
+                    linkOpenMode={linkOpenMode} 
+                    toolSearchQuery={toolSearchQuery}
+                    onToolSearch={setToolSearchQuery}
+                />
+            )}
             
             <AnimatePresence>
                 {viewMode === ViewMode.LIST && (
@@ -311,16 +508,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
                                 SYSTEM
                             </h2>
                              <div className="w-full max-w-md">
-                                <SystemWidget mode="card" linkOpenMode={linkOpenMode} />
+                                <SystemWidget 
+                                    mode="card" 
+                                    linkOpenMode={linkOpenMode}
+                                    toolSearchQuery={toolSearchQuery}
+                                    onToolSearch={setToolSearchQuery}
+                                />
                              </div>
                         </div>
                     </div>
                 </section>
             )}
 
-            {tools.map((tool, index) => (
-                <ToolCard key={tool.id} tool={tool} mode={viewMode} index={index} />
-            ))}
+            {filteredTools.length > 0 ? (
+                filteredTools.map((tool, index) => (
+                    <ToolCard key={tool.id} tool={tool} mode={viewMode} index={index} />
+                ))
+            ) : (
+                <div className={`col-span-full py-20 text-center opacity-50 uppercase tracking-widest ${viewMode === ViewMode.LIST ? 'w-full' : ''}`}>
+                    No systems found matching query.
+                </div>
+            )}
         </div>
       </div>
     </>

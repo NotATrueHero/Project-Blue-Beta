@@ -50,6 +50,7 @@ export interface ToolItem {
   description: string;
   path: string;
   imageText: string;
+  keywords?: string[];
 }
 
 export interface FileFolder {

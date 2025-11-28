@@ -19,6 +19,7 @@ import { Games } from './pages/Games';
 import { Weather } from './pages/Weather';
 import { News } from './pages/News';
 import { IDE } from './pages/IDE';
+import { Calculator } from './pages/Calculator';
 import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink, LinkOpenMode } from './types';
 
 const App: React.FC = () => {
@@ -447,6 +448,8 @@ const App: React.FC = () => {
       content = <News linkOpenMode={linkOpenMode} />;
   } else if (pathname === '/ide') {
       content = <IDE />;
+  } else if (pathname === '/calculator') {
+      content = <Calculator />;
   }
   else if (pathname === '/config') {
       content = <Config 
