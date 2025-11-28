@@ -180,6 +180,29 @@ export const Music: React.FC<MusicProps> = ({
         onUpdatePlaylists(updatedPlaylists);
     };
 
+    const handleDragEnd = (event: any, info: any, track: Track) => {
+        const dropTarget = document.elementFromPoint(info.point.x, info.point.y);
+        const playlistElement = dropTarget?.closest('[data-playlist-id]');
+        
+        if (playlistElement) {
+            const targetId = playlistElement.getAttribute('data-playlist-id');
+            // If dropping to a different playlist
+            if (targetId && targetId !== activePlaylistId) {
+                // Remove from current, Add to new
+                const updatedPlaylists = playlists.map(p => {
+                    if (p.id === activePlaylistId) {
+                        return { ...p, tracks: p.tracks.filter(t => t.id !== track.id) };
+                    }
+                    if (p.id === targetId) {
+                        return { ...p, tracks: [...p.tracks, track] };
+                    }
+                    return p;
+                });
+                onUpdatePlaylists(updatedPlaylists);
+            }
+        }
+    };
+
     return (
         <motion.div 
             initial={{ opacity: 0 }} 
@@ -214,10 +237,11 @@ export const Music: React.FC<MusicProps> = ({
                     {playlists.map(pl => (
                         <div 
                             key={pl.id}
+                            data-playlist-id={pl.id}
                             onClick={() => onSelectPlaylist(pl.id)}
                             className={`group flex items-center justify-between px-3 py-2 cursor-pointer border border-transparent hover:border-white/50 transition-all ${activePlaylistId === pl.id ? 'bg-white text-blue-base font-bold' : 'text-white'}`}
                         >
-                            <span className="uppercase text-xs truncate">{pl.title}</span>
+                            <span className="uppercase text-xs truncate pointer-events-none">{pl.title}</span>
                             <button onClick={(e) => deletePlaylist(e, pl.id)} className="opacity-0 group-hover:opacity-100 hover:text-red-500">
                                 <Trash2 size={12} />
                             </button>
@@ -329,7 +353,11 @@ export const Music: React.FC<MusicProps> = ({
                                  {activePlaylist.tracks.map((track) => {
                                      const isActive = currentTrackId === track.id;
                                      return (
-                                         <Reorder.Item key={track.id} value={track}>
+                                         <Reorder.Item 
+                                            key={track.id} 
+                                            value={track}
+                                            onDragEnd={(e, info) => handleDragEnd(e, info, track)}
+                                         >
                                              <div 
                                                 className={`group flex items-center gap-4 p-3 border border-transparent transition-all cursor-pointer ${isActive ? 'bg-white text-blue-base font-bold border-white' : 'hover:bg-white/10 hover:border-white/20'}`}
                                                 onClick={() => onPlay(track.id, activePlaylist.id)}

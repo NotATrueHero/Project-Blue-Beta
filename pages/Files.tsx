@@ -105,7 +105,7 @@ export const Files: React.FC = () => {
   const moveFile = (fileId: string, folderId: string | undefined) => {
       const updatedFiles = files.map(f => f.id === fileId ? { ...f, folderId } : f);
       saveFiles(updatedFiles);
-      if (selectedFile) {
+      if (selectedFile?.id === fileId) {
           setSelectedFile({ ...selectedFile, folderId });
       }
   };
@@ -193,10 +193,6 @@ export const Files: React.FC = () => {
   };
 
   const handleFileReorder = (newOrder: FileItem[]) => {
-      // Reorder only applies to current folder view.
-      // We need to construct a new global file list.
-      // Strategy: Remove all files in current folder from master list, insert newOrder at appropriate place or end.
-      // Easier: Filter out current folder files, then append new order.
       const others = files.filter(f => f.folderId !== activeFolderId);
       
       // If activeFolderId is null (Root), we need to filter out files that HAVE a folderId
@@ -205,6 +201,24 @@ export const Files: React.FC = () => {
           saveFiles([...filesWithFolders, ...newOrder]);
       } else {
           saveFiles([...others, ...newOrder]);
+      }
+  };
+
+  const handleDragEnd = (event: any, info: any, fileId: string) => {
+      // Hit testing for folders
+      // We look for elements with data-folder-id
+      const dropTarget = document.elementFromPoint(info.point.x, info.point.y);
+      const folderElement = dropTarget?.closest('[data-folder-id]');
+      
+      if (folderElement) {
+          const targetId = folderElement.getAttribute('data-folder-id');
+          // If we are dropping onto the same folder we are currently in, do nothing (unless moving from root to sub?)
+          // But activeFolderId is what defines current view.
+          if (targetId && targetId !== activeFolderId) {
+             moveFile(fileId, targetId);
+          } else if (targetId === 'root' && activeFolderId !== null) {
+             moveFile(fileId, undefined);
+          }
       }
   };
 
@@ -224,13 +238,14 @@ export const Files: React.FC = () => {
       return (
           <div className="select-none">
               <div 
+                  data-folder-id={folder.id}
                   onClick={() => setActiveFolderId(folder.id)}
                   className={`group flex items-center justify-between px-3 py-2 cursor-pointer border border-transparent hover:border-white/50 transition-all ${activeFolderId === folder.id ? 'bg-white text-blue-base font-bold' : 'text-white'}`}
                   style={{ paddingLeft: `${depth * 12 + 12}px` }}
               >
-                  <div className="flex items-center gap-2 truncate flex-1">
+                  <div className="flex items-center gap-2 truncate flex-1 pointer-events-none">
                       {children.length > 0 && (
-                          <div onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}>
+                          <div onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }} className="pointer-events-auto">
                               {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                           </div>
                       )}
@@ -244,10 +259,10 @@ export const Files: React.FC = () => {
                               onBlur={confirmRename}
                               onKeyDown={(e) => e.key === 'Enter' && confirmRename()}
                               onClick={(e) => e.stopPropagation()}
-                              className="bg-transparent border-b border-current w-full outline-none text-xs uppercase"
+                              className="bg-transparent border-b border-current w-full outline-none text-xs uppercase pointer-events-auto"
                           />
                       ) : (
-                        <span className="uppercase text-xs truncate" onDoubleClick={() => handleRename(folder.id, 'folder', folder.name)}>{folder.name}</span>
+                        <span className="uppercase text-xs truncate pointer-events-auto" onDoubleClick={() => handleRename(folder.id, 'folder', folder.name)}>{folder.name}</span>
                       )}
                   </div>
                   
@@ -333,6 +348,7 @@ export const Files: React.FC = () => {
 
                <div className="flex-1 overflow-y-auto hide-scrollbar space-y-1">
                    <div 
+                        data-folder-id="root"
                         onClick={() => setActiveFolderId(null)}
                         className={`flex items-center gap-2 px-3 py-2 cursor-pointer border border-transparent hover:border-white/50 transition-all ${activeFolderId === null ? 'bg-white text-blue-base font-bold' : 'text-white'}`}
                     >
@@ -393,7 +409,12 @@ export const Files: React.FC = () => {
                 >
                     <Reorder.Group axis="y" values={currentViewFiles} onReorder={handleFileReorder} className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20">
                         {currentViewFiles.map(file => (
-                            <Reorder.Item key={file.id} value={file} className="relative aspect-square">
+                            <Reorder.Item 
+                                key={file.id} 
+                                value={file} 
+                                onDragEnd={(e, info) => handleDragEnd(e, info, file.id)}
+                                className="relative aspect-square"
+                            >
                                 <div 
                                     onClick={() => setSelectedFile(file)}
                                     className="group w-full h-full relative border-2 border-white bg-black/20 flex flex-col cursor-pointer hover:border-blue-400 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all"

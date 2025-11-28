@@ -258,16 +258,19 @@ export const Bookmarks: React.FC<BookmarksProps> = ({ linkOpenMode }) => {
                           </div>
                       </div>
 
-                      {/* BOOKMARKS GRID */}
+                      {/* BOOKMARKS GRID - Removed 'axis="y"' to allow 2D drag in grid */}
                       <Reorder.Group 
-                        axis="y" 
                         values={category.bookmarks} 
                         onReorder={(newOrder) => handleBookmarkReorder(category.id, newOrder)}
                         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                       >
                           {category.bookmarks.map(bm => (
-                              <Reorder.Item key={bm.id} value={bm} className="relative h-full">
-                                  <div className="group relative h-40 border-4 border-white p-6 flex flex-col justify-between hover:bg-white hover:text-blue-base transition-all duration-300 hover:-translate-y-1 cursor-default overflow-hidden">
+                              <Reorder.Item 
+                                key={bm.id} 
+                                value={bm} 
+                                className="relative h-full"
+                              >
+                                  <div className="group relative h-40 border-4 border-white p-6 flex flex-col justify-between hover:bg-white hover:text-blue-base transition-all duration-300 hover:-translate-y-1 cursor-default overflow-hidden bg-black/20">
                                        
                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                                            <GripVertical className="cursor-grab active:cursor-grabbing p-1" size={24} />
