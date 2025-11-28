@@ -574,7 +574,7 @@ export const Config: React.FC<ConfigProps> = ({
                             </div>
                             <div className="flex justify-between">
                                 <span>AI BRIDGE</span>
-                                <span>Gemini 2.0 Flash / Pro</span>
+                                <span>Gemini 2.5 Flash</span>
                             </div>
                             <div className="flex justify-between">
                                 <span>STORAGE</span>
@@ -586,7 +586,7 @@ export const Config: React.FC<ConfigProps> = ({
                             </div>
                             <div className="flex justify-between">
                                 <span>BUILD</span>
-                                <span>Stable 2.7.4 (Cobalt)</span>
+                                <span>Stable 2.7.5 (Cobalt)</span>
                             </div>
                          </div>
 
