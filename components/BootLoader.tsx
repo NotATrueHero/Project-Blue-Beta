@@ -1,8 +1,9 @@
+
 import * as React from 'react';
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Power, AlertTriangle } from 'lucide-react';
-import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition, QuickLink } from '../types';
+import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition, QuickLink, LinkOpenMode } from '../types';
 
 interface BootLoaderProps {
   onLoadComplete: (
@@ -17,7 +18,8 @@ interface BootLoaderProps {
       quickLinks?: QuickLink[],
       greetingEnabled?: boolean,
       greetingText?: string,
-      authEnabled?: boolean
+      authEnabled?: boolean,
+      linkOpenMode?: LinkOpenMode
   ) => void;
 }
 
@@ -73,11 +75,13 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
 
         const quickLinks: QuickLink[] = data.quickLinks || [];
         const authEnabled = data.authEnabled !== undefined ? data.authEnabled : true;
+        const linkOpenMode: LinkOpenMode = data.linkOpenMode || 'new_tab';
 
         // Seed LocalStorage
         localStorage.setItem('blue_pin', data.pin);
         if (data.callsign) localStorage.setItem('blue_callsign', data.callsign);
         localStorage.setItem('blue_auth_enabled', String(authEnabled));
+        localStorage.setItem('blue_link_mode', linkOpenMode);
         
         localStorage.setItem('blue_notes', JSON.stringify(data.notes));
         localStorage.setItem('blue_note_folders', JSON.stringify(data.noteFolders || []));
@@ -126,7 +130,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
                 quickLinks,
                 data.greetingEnabled,
                 data.greetingText,
-                authEnabled
+                authEnabled,
+                linkOpenMode
             );
         }, 800);
 
@@ -149,9 +154,10 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         
         // Default Widget Position
         localStorage.setItem('blue_widget_pos', 'tool');
+        localStorage.setItem('blue_link_mode', 'new_tab');
     
         // Boot without auth
-        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined, true);
+        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined, true, 'new_tab');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

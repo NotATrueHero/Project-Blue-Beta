@@ -2,12 +2,14 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert } from 'lucide-react';
-import { UserData, Theme, MusicPlaylist, LoopMode, WidgetPosition } from '../types';
+import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert, SquareArrowOutUpRight, Link } from 'lucide-react';
+import { UserData, Theme, MusicPlaylist, LoopMode, WidgetPosition, LinkOpenMode } from '../types';
 
 interface ConfigProps {
     currentTheme: Theme;
     onThemeChange: (t: Theme) => void;
+    linkOpenMode: LinkOpenMode;
+    onLinkOpenModeChange: (m: LinkOpenMode) => void;
     callsign: string;
     onCallsignChange: (name: string) => void;
     crtEnabled: boolean;
@@ -31,7 +33,8 @@ interface ConfigProps {
 }
 
 export const Config: React.FC<ConfigProps> = ({ 
-    currentTheme, onThemeChange, 
+    currentTheme, onThemeChange,
+    linkOpenMode, onLinkOpenModeChange,
     callsign, onCallsignChange,
     crtEnabled, onCrtChange,
     autoLockSeconds, onAutoLockChange,
@@ -80,6 +83,7 @@ export const Config: React.FC<ConfigProps> = ({
         pin,
         authEnabled,
         theme,
+        linkOpenMode,
         callsign,
         crtEnabled,
         autoLockSeconds,
@@ -226,6 +230,22 @@ export const Config: React.FC<ConfigProps> = ({
                     </div>
                     <button onClick={toggleTheme} className="border border-white px-4 py-1 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all">
                         {currentTheme === 'standard' ? 'Switch Stealth' : 'Switch Standard'}
+                    </button>
+                </div>
+
+                {/* Link Open Mode */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="font-bold uppercase tracking-wider mb-1 flex items-center gap-2">
+                             <SquareArrowOutUpRight size={16} /> Link Protocol
+                        </div>
+                        <div className="text-xs opacity-60">Open external links in New Tab or Current Tab</div>
+                    </div>
+                    <button 
+                        onClick={() => onLinkOpenModeChange(linkOpenMode === 'new_tab' ? 'current_tab' : 'new_tab')}
+                        className="border border-white px-4 py-1 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all"
+                    >
+                        {linkOpenMode === 'new_tab' ? 'NEW TAB' : 'CURRENT TAB'}
                     </button>
                 </div>
 

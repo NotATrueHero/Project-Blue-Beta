@@ -3,9 +3,13 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Plus, Globe, Trash2, ExternalLink, GripVertical, Edit2, FolderPlus } from 'lucide-react';
-import { Bookmark, BookmarkCategory } from '../types';
+import { Bookmark, BookmarkCategory, LinkOpenMode } from '../types';
 
-export const Bookmarks: React.FC = () => {
+interface BookmarksProps {
+    linkOpenMode: LinkOpenMode;
+}
+
+export const Bookmarks: React.FC<BookmarksProps> = ({ linkOpenMode }) => {
   const [categories, setCategories] = useState<BookmarkCategory[]>([]);
   
   // Adding Bookmark State
@@ -272,7 +276,12 @@ export const Bookmarks: React.FC = () => {
                                            </button>
                                        </div>
 
-                                       <a href={bm.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-10" />
+                                       <a 
+                                           href={bm.url} 
+                                           target={linkOpenMode === 'new_tab' ? "_blank" : "_self"} 
+                                           rel="noopener noreferrer" 
+                                           className="absolute inset-0 z-10" 
+                                       />
 
                                        <Globe className="w-8 h-8 opacity-50 group-hover:opacity-100 transition-opacity" />
                                        

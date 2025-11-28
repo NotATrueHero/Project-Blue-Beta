@@ -18,7 +18,7 @@ import { Whiteboard } from './pages/Whiteboard';
 import { Games } from './pages/Games';
 import { Weather } from './pages/Weather';
 import { News } from './pages/News';
-import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink } from './types';
+import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink, LinkOpenMode } from './types';
 
 const App: React.FC = () => {
   const [bootStatus, setBootStatus] = useState<'booting' | 'locked' | 'unlocked'>('booting');
@@ -26,6 +26,7 @@ const App: React.FC = () => {
   
   // --- SETTINGS STATE ---
   const [theme, setTheme] = useState<Theme>('standard');
+  const [linkOpenMode, setLinkOpenMode] = useState<LinkOpenMode>('new_tab');
   const [callsign, setCallsign] = useState<string>('');
   const [crtEnabled, setCrtEnabled] = useState<boolean>(false);
   const [autoLockSeconds, setAutoLockSeconds] = useState<number>(0);
@@ -64,6 +65,7 @@ const App: React.FC = () => {
     // 1. Session & Auth
     const cachedPin = localStorage.getItem('blue_pin');
     const cachedTheme = localStorage.getItem('blue_theme') as Theme;
+    const cachedLinkMode = localStorage.getItem('blue_link_mode') as LinkOpenMode;
     const cachedCallsign = localStorage.getItem('blue_callsign');
     const cachedCrt = localStorage.getItem('blue_crt');
     const cachedAutoLock = localStorage.getItem('blue_autolock');
@@ -80,6 +82,7 @@ const App: React.FC = () => {
     if (cachedPin) {
       setSessionPin(cachedPin);
       if (cachedTheme) setTheme(cachedTheme);
+      if (cachedLinkMode) setLinkOpenMode(cachedLinkMode);
       if (cachedCallsign) setCallsign(cachedCallsign);
       if (cachedCrt) setCrtEnabled(cachedCrt === 'true');
       if (cachedAutoLock) setAutoLockSeconds(parseInt(cachedAutoLock));
@@ -320,10 +323,12 @@ const App: React.FC = () => {
       quickLinks?: QuickLink[],
       loadedGreetingEnabled?: boolean,
       loadedGreetingText?: string,
-      loadedAuthEnabled?: boolean
+      loadedAuthEnabled?: boolean,
+      loadedLinkOpenMode?: LinkOpenMode
   ) => {
     setSessionPin(pin);
     if (loadedTheme) setTheme(loadedTheme);
+    if (loadedLinkOpenMode) setLinkOpenMode(loadedLinkOpenMode);
     if (loadedPlaylists) setPlaylists(loadedPlaylists);
     if (loadedCallsign) setCallsign(loadedCallsign);
     if (loadedCrt !== undefined) setCrtEnabled(loadedCrt);
@@ -349,6 +354,11 @@ const App: React.FC = () => {
       setTheme(newTheme);
       localStorage.setItem('blue_theme', newTheme);
   };
+
+  const updateLinkOpenMode = (mode: LinkOpenMode) => {
+      setLinkOpenMode(mode);
+      localStorage.setItem('blue_link_mode', mode);
+  }
   
   const updateCallsign = (name: string) => {
       setCallsign(name);
@@ -383,8 +393,6 @@ const App: React.FC = () => {
   const updateAuthEnabled = (enabled: boolean) => {
       setAuthEnabled(enabled);
       localStorage.setItem('blue_auth_enabled', String(enabled));
-      // If disabled, unlock immediately if locked? 
-      // If we are in Config, we are already unlocked.
   };
 
   if (bootStatus === 'booting') {
@@ -399,7 +407,7 @@ const App: React.FC = () => {
   if (pathname === '/notes') content = <Notes />;
   else if (pathname === '/tasks') content = <Tasks />;
   else if (pathname === '/oracle') content = <Oracle />;
-  else if (pathname === '/uplink') content = <Bookmarks />;
+  else if (pathname === '/uplink') content = <Bookmarks linkOpenMode={linkOpenMode} />;
   else if (pathname === '/files') content = <Files />;
   else if (pathname === '/music') {
       content = <Music 
@@ -435,12 +443,14 @@ const App: React.FC = () => {
   } else if (pathname === '/weather') {
       content = <Weather />;
   } else if (pathname === '/news') {
-      content = <News />;
+      content = <News linkOpenMode={linkOpenMode} />;
   }
   else if (pathname === '/config') {
       content = <Config 
           currentTheme={theme} 
           onThemeChange={updateTheme}
+          linkOpenMode={linkOpenMode}
+          onLinkOpenModeChange={updateLinkOpenMode}
           callsign={callsign}
           onCallsignChange={updateCallsign}
           crtEnabled={crtEnabled}
@@ -466,6 +476,7 @@ const App: React.FC = () => {
         widgetPosition={widgetPosition} 
         greetingEnabled={greetingEnabled}
         greetingText={greetingText}
+        linkOpenMode={linkOpenMode}
       />
   );
 

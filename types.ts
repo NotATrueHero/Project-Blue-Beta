@@ -69,6 +69,7 @@ export interface FileItem {
 }
 
 export type Theme = 'standard' | 'stealth';
+export type LinkOpenMode = 'new_tab' | 'current_tab';
 
 export interface Track {
     id: string;
@@ -94,6 +95,7 @@ export interface UserData {
   authEnabled?: boolean;
   callsign?: string; 
   theme: Theme;
+  linkOpenMode?: LinkOpenMode;
   crtEnabled?: boolean; 
   autoLockSeconds?: number;
   widgetPosition?: WidgetPosition;

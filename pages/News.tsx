@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Radio, ExternalLink, RefreshCw, ChevronRight } from 'lucide-react';
+import { LinkOpenMode } from '../types';
 
 interface NewsItem {
     id: number;
@@ -13,7 +14,11 @@ interface NewsItem {
     time: number;
 }
 
-export const News: React.FC = () => {
+interface NewsProps {
+    linkOpenMode: LinkOpenMode;
+}
+
+export const News: React.FC<NewsProps> = ({ linkOpenMode }) => {
     const [news, setNews] = useState<NewsItem[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -74,7 +79,7 @@ export const News: React.FC = () => {
                             <a 
                                 key={item.id} 
                                 href={item.url} 
-                                target="_blank" 
+                                target={linkOpenMode === 'new_tab' ? "_blank" : "_self"} 
                                 rel="noopener noreferrer"
                                 className="group block border-l-4 border-white/20 pl-4 py-4 hover:bg-white/5 hover:border-white transition-all"
                             >

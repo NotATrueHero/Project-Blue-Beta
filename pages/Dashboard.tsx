@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from '../components/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, ExternalLink, X } from 'lucide-react';
-import { ViewMode, ToolItem, WidgetPosition, QuickLink } from '../types';
+import { ViewMode, ToolItem, WidgetPosition, QuickLink, LinkOpenMode } from '../types';
 
 const tools: ToolItem[] = [
   { id: 'uplink', number: '01 / Network', category: 'Web', title: 'Uplink', description: 'Stored coordinates for external network navigation and quick access.', path: '/uplink', imageText: 'NET BRIDGE' },
@@ -28,10 +28,11 @@ interface DashboardProps {
     widgetPosition: WidgetPosition;
     greetingEnabled?: boolean;
     greetingText?: string;
+    linkOpenMode: LinkOpenMode;
 }
 
 // Reusable System Widget Component
-const SystemWidget: React.FC<{ mode: 'hero' | 'card' }> = ({ mode }) => {
+const SystemWidget: React.FC<{ mode: 'hero' | 'card', linkOpenMode: LinkOpenMode }> = ({ mode, linkOpenMode }) => {
     const [time, setTime] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
     const [quickLinks, setQuickLinks] = useState<QuickLink[]>([]);
@@ -62,7 +63,10 @@ const SystemWidget: React.FC<{ mode: 'hero' | 'card' }> = ({ mode }) => {
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         if (!searchQuery.trim()) return;
-        window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
+        window.open(
+            `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, 
+            linkOpenMode === 'new_tab' ? '_blank' : '_self'
+        );
         setSearchQuery('');
     };
 
@@ -151,7 +155,7 @@ const SystemWidget: React.FC<{ mode: 'hero' | 'card' }> = ({ mode }) => {
                          <a 
                             key={link.id} 
                             href={link.url} 
-                            target="_blank" 
+                            target={linkOpenMode === 'new_tab' ? "_blank" : "_self"} 
                             rel="noopener noreferrer"
                             className="group/link relative h-16 border border-white/30 flex flex-col items-center justify-center hover:bg-white hover:text-blue-base transition-colors cursor-pointer bg-white/5"
                          >
@@ -201,7 +205,7 @@ const SystemWidget: React.FC<{ mode: 'hero' | 'card' }> = ({ mode }) => {
 };
 
 
-export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect, widgetPosition, greetingEnabled, greetingText }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect, widgetPosition, greetingEnabled, greetingText, linkOpenMode }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -271,7 +275,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
             </motion.div>
 
             {/* UTILITY BAR (Hero Mode) */}
-            {widgetPosition === 'hero' && <SystemWidget mode="hero" />}
+            {widgetPosition === 'hero' && <SystemWidget mode="hero" linkOpenMode={linkOpenMode} />}
             
             <AnimatePresence>
                 {viewMode === ViewMode.LIST && (
@@ -306,7 +310,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
                                 SYSTEM
                             </h2>
                              <div className="w-full max-w-md">
-                                <SystemWidget mode="card" />
+                                <SystemWidget mode="card" linkOpenMode={linkOpenMode} />
                              </div>
                         </div>
                     </div>
