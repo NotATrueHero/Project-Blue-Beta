@@ -1,23 +1,21 @@
 
 // Native Fetch Implementation for Gemini API
-// No external SDK dependencies required
+// Designed to mimic the structure requested by the user without external dependencies
 
-export interface ChatMessage {
-    role: 'user' | 'model';
-    parts: { text?: string; inlineData?: { mimeType: string; data: string } }[];
-}
-
-export interface StreamChatParams {
-    apiKey: string;
+export interface ChatSession {
+    history: {
+        role: 'user' | 'model';
+        parts: any[]; // Changed from strict text type to allow inlineData
+    }[];
     model: string;
-    history: ChatMessage[];
-    message: string;
-    files: { mimeType: string; data: string }[]; // Base64 without prefix
-    systemInstruction?: string;
-    useSearch?: boolean;
 }
 
-// Safe accessor for API Key
+export interface Attachment {
+    mimeType: string;
+    data: string; // Base64 string without prefix
+}
+
+// Safe accessor for API Key from LocalStorage
 export const getApiKey = (): string | undefined => {
   const localKey = localStorage.getItem('blue_api_key');
   if (localKey && localKey.trim().length > 0) return localKey.trim();
@@ -32,108 +30,87 @@ export const getApiKey = (): string | undefined => {
   return undefined;
 };
 
-export const streamChat = async ({
-    apiKey,
-    model,
-    history,
-    message,
-    files,
-    systemInstruction,
-    useSearch
-}: StreamChatParams) => {
-    
-    // Construct request body for REST API
-    const contents = history.map(h => ({
-        role: h.role,
-        parts: h.parts.map(p => {
-            if (p.inlineData) {
-                return { inline_data: { mime_type: p.inlineData.mimeType, data: p.inlineData.data } };
-            }
-            return { text: p.text };
-        })
-    }));
+// Factory function to create a chat session state
+export const createOracleChat = (): ChatSession => {
+    return {
+        history: [],
+        model: 'gemini-1.5-flash' // Using 1.5 Flash as it is the current stable standard
+    };
+};
 
-    // Add current message
-    const currentParts: any[] = [];
-    if (files && files.length > 0) {
-        files.forEach(f => {
-            currentParts.push({ inline_data: { mime_type: f.mimeType, data: f.data } });
+// Stateless send function that appends to history and calls API
+export const sendMessageToOracle = async (chat: ChatSession, message: string, attachment?: Attachment): Promise<string> => {
+    const apiKey = getApiKey();
+    if (!apiKey) return "System Error: API Key missing or invalid.";
+
+    // 1. Prepare User Message Parts
+    const userParts: any[] = [];
+    
+    // Add text if present
+    if (message.trim()) {
+        userParts.push({ text: message });
+    }
+    
+    // Add attachment if present
+    if (attachment) {
+        userParts.push({
+            inlineData: {
+                mimeType: attachment.mimeType,
+                data: attachment.data
+            }
         });
     }
-    if (message) {
-        currentParts.push({ text: message });
-    }
-    
-    if (currentParts.length > 0) {
-        contents.push({ role: 'user', parts: currentParts });
-    }
 
-    const tools = useSearch ? [{ google_search: {} }] : undefined;
+    if (userParts.length === 0) return "Error: Empty message";
 
-    const body = {
-        contents,
-        system_instruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-        tools
-    };
-
-    // Use SSE (Server-Sent Events) endpoint
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${apiKey}&alt=sse`;
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
+    // 2. Update local history
+    chat.history.push({
+        role: 'user',
+        parts: userParts
     });
 
-    if (!response.ok) {
-        throw new Error(`Gemini API Error: ${response.status} ${response.statusText}`);
-    }
-
-    if (!response.body) throw new Error("No response body received");
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    // Generator function to yield parsed chunks
-    const stream = (async function* () {
-        let buffer = '';
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            
-            const chunk = decoder.decode(value, { stream: true });
-            buffer += chunk;
-            
-            const lines = buffer.split('\n');
-            // Keep the last partial line in the buffer
-            buffer = lines.pop() || '';
-
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const jsonStr = line.slice(6);
-                    if (jsonStr === '[DONE]') continue;
-                    
-                    try {
-                        const data = JSON.parse(jsonStr);
-                        // Map structure to match what Oracle.tsx expects
-                        // Oracle expects chunk.text and chunk.candidates[0].groundingMetadata
-                        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                        
-                        yield {
-                            text,
-                            candidates: data.candidates,
-                            // Pass through raw data just in case
-                            raw: data
-                        };
-                    } catch (e) {
-                        // Ignore parse errors for partial chunks
-                    }
-                }
+    try {
+        // 3. Prepare Payload
+        const payload = {
+            contents: chat.history,
+            systemInstruction: {
+                parts: [{ text: 'You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone. Keep answers brief. Do not output internal thought traces or reasoning steps.' }]
             }
-        }
-    })();
+        };
 
-    return { stream };
+        // 4. Native Fetch Call
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${chat.model}:generateContent?key=${apiKey}`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error("Gemini API Error:", errText);
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // 5. Extract Response
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (text) {
+            // 6. Update history with model response
+            chat.history.push({
+                role: 'model',
+                parts: [{ text }]
+            });
+            return text;
+        } else {
+            return "ERR: No data received from Oracle Core.";
+        }
+
+    } catch (error) {
+        console.error("Oracle Connection Failure:", error);
+        return "Connection Lost. Secure channel unavailable.";
+    }
 };

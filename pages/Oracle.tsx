@@ -2,469 +2,270 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Cpu, AlertTriangle, Paperclip, X, Settings, Globe, Image as ImageIcon, FileText } from 'lucide-react';
-import { getApiKey, streamChat, ChatMessage } from '../services/geminiService';
+import { Send, Cpu, AlertTriangle, Paperclip, X, FileText, Image as ImageIcon } from 'lucide-react';
+import { createOracleChat, sendMessageToOracle, ChatSession, Attachment, getApiKey } from '../services/geminiService';
 
-// --- Types ---
-interface ExtendedMessage extends ChatMessage {
-    id: string;
-    isStreaming?: boolean;
-    groundingMetadata?: any;
-    timestamp: number;
+interface Message {
+  role: 'user' | 'model';
+  text: string;
+  attachment?: {
+      mimeType: string;
+      previewUrl: string;
+      name: string;
+  };
 }
 
-interface AttachedFile {
-    id: string;
+interface PendingAttachment {
     file: File;
-    preview: string;
-    base64: string; // Raw base64 without prefix
-    mimeType: string;
+    previewUrl: string;
+    base64Data: string; // Data without prefix for API
 }
-
-const MODELS = [
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'Fast, Efficient' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Complex Reasoning' },
-];
 
 export const Oracle: React.FC = () => {
-    // --- State ---
-    const [apiKey, setApiKey] = useState<string | null>(null);
-    const [input, setInput] = useState('');
-    const [messages, setMessages] = useState<ExtendedMessage[]>([]);
-    const [files, setFiles] = useState<AttachedFile[]>([]);
-    const [isTyping, setIsTyping] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'model', text: 'Oracle System Online. Awaiting query.' }
+  ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [chatSession, setChatSession] = useState<ChatSession | null>(null);
+  const [attachment, setAttachment] = useState<PendingAttachment | null>(null);
+  
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Check for API key in local storage (Project Blue config)
+  const apiKeyAvailable = !!getApiKey();
+
+  useEffect(() => {
+    if (apiKeyAvailable) {
+      setChatSession(createOracleChat());
+    }
+  }, [apiKeyAvailable]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isTyping, attachment]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Validate size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+          alert("File too large. Maximum size is 5MB.");
+          return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+          const result = ev.target?.result as string;
+          // Split data URI to get raw base64 for API
+          const base64Data = result.split(',')[1];
+          
+          setAttachment({
+              file: file,
+              previewUrl: result,
+              base64Data: base64Data
+          });
+      };
+      reader.readAsDataURL(file);
+      
+      // Reset input so same file can be selected again if needed
+      if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const clearAttachment = () => {
+      setAttachment(null);
+  };
+
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if ((!input.trim() && !attachment) || !chatSession || isTyping) return;
+
+    const userMsgText = input;
+    const currentAttachment = attachment;
     
-    // Config State
-    const [showConfig, setShowConfig] = useState(false);
-    const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
-    const [systemInstruction, setSystemInstruction] = useState('You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone.');
-    const [useSearch, setUseSearch] = useState(false);
-
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // --- Init ---
-    useEffect(() => {
-        const key = getApiKey();
-        if (key) setApiKey(key);
-        
-        // Initial Greeting
-        setMessages([{
-            id: 'init',
-            role: 'model',
-            parts: [{ text: 'Oracle System v1.5 Online. Awaiting multi-modal input.' }],
-            timestamp: Date.now()
-        }]);
-    }, []);
-
-    useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [messages, isTyping, files]);
-
-    // --- File Handling ---
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            processFiles(Array.from(e.target.files));
-        }
+    // Construct local display message
+    const newMessage: Message = { 
+        role: 'user', 
+        text: userMsgText
     };
 
-    const processFiles = async (fileList: File[]) => {
-        const newAttachments: AttachedFile[] = [];
-        for (const file of fileList) {
-            // Basic size check (4MB)
-            if (file.size > 4 * 1024 * 1024) continue;
+    let apiAttachment: Attachment | undefined;
 
-            const base64Full = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target?.result as string);
-                reader.readAsDataURL(file);
-            });
-            
-            // Extract raw base64
-            const base64 = base64Full.split(',')[1];
-            
-            newAttachments.push({
-                id: Math.random().toString(36).substring(7),
-                file,
-                preview: base64Full,
-                base64,
-                mimeType: file.type
-            });
-        }
-        setFiles(prev => [...prev, ...newAttachments]);
-    };
-
-    const removeFile = (id: string) => {
-        setFiles(prev => prev.filter(f => f.id !== id));
-    };
-
-    // --- Chat Logic ---
-    const handleSend = async (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        if ((!input.trim() && files.length === 0) || isTyping || !apiKey) return;
-
-        const currentInput = input;
-        const currentFiles = [...files];
-        
-        // Clear input state immediately
-        setInput('');
-        setFiles([]);
-        setIsTyping(true);
-
-        // Construct User Message
-        const userMsg: ExtendedMessage = {
-            id: Date.now().toString(),
-            role: 'user',
-            parts: [
-                ...currentFiles.map(f => ({ inlineData: { mimeType: f.mimeType, data: f.base64 } })),
-                ...(currentInput ? [{ text: currentInput }] : [])
-            ],
-            timestamp: Date.now()
+    if (currentAttachment) {
+        newMessage.attachment = {
+            mimeType: currentAttachment.file.type,
+            previewUrl: currentAttachment.previewUrl,
+            name: currentAttachment.file.name
         };
-
-        setMessages(prev => [...prev, userMsg]);
-
-        try {
-            // Prepare history for API (exclude current message as we send it explicitly)
-            const history = messages.map(m => ({
-                role: m.role,
-                parts: m.parts
-            }));
-
-            const { stream } = await streamChat({
-                apiKey,
-                model: selectedModel,
-                history,
-                message: currentInput,
-                files: currentFiles.map(f => ({ mimeType: f.mimeType, data: f.base64 })),
-                systemInstruction,
-                useSearch
-            });
-
-            // Init Model Response
-            const modelMsgId = (Date.now() + 1).toString();
-            setMessages(prev => [...prev, {
-                id: modelMsgId,
-                role: 'model',
-                parts: [{ text: '' }],
-                isStreaming: true,
-                timestamp: Date.now()
-            }]);
-
-            let fullText = '';
-            let groundingMetadata = null;
-
-            for await (const chunk of stream) {
-                if (chunk.text) {
-                    fullText += chunk.text;
-                }
-                if (chunk.candidates?.[0]?.groundingMetadata) {
-                    groundingMetadata = chunk.candidates[0].groundingMetadata;
-                }
-
-                // Update UI
-                setMessages(prev => prev.map(m => 
-                    m.id === modelMsgId 
-                        ? { 
-                            ...m, 
-                            parts: [{ text: fullText }], 
-                            groundingMetadata: groundingMetadata || m.groundingMetadata
-                          } 
-                        : m
-                ));
-            }
-
-            // Finalize
-            setMessages(prev => prev.map(m => m.id === modelMsgId ? { ...m, isStreaming: false } : m));
-
-        } catch (error) {
-            console.error(error);
-            setMessages(prev => [...prev, {
-                id: Date.now().toString(),
-                role: 'model',
-                parts: [{ text: `ERR: DATA STREAM INTERRUPTED. ${error}` }],
-                timestamp: Date.now()
-            }]);
-        } finally {
-            setIsTyping(false);
-        }
-    };
-
-    // --- Rendering Helpers ---
-    const renderMarkdown = (text: string) => {
-        // Very basic parser for bold, code blocks, lists
-        // In a real app, use react-markdown
-        return text.split('\n').map((line, i) => {
-            // Code block
-            if (line.startsWith('```')) return <div key={i} className="my-2 p-2 bg-black/40 font-mono text-xs border border-white/20 whitespace-pre-wrap">{line}</div>;
-            // Bullet
-            if (line.trim().startsWith('* ') || line.trim().startsWith('- ')) return <div key={i} className="ml-4 flex gap-2"><span className="opacity-50">•</span><span>{line.substring(2)}</span></div>;
-            return <div key={i} className="min-h-[1.2em]">{line}</div>;
-        });
-    };
-
-    const renderGrounding = (metadata: any) => {
-        if (!metadata?.groundingChunks) return null;
-        
-        const sources = metadata.groundingChunks
-            .map((chunk: any) => chunk.web?.uri ? { title: chunk.web.title, uri: chunk.web.uri } : null)
-            .filter(Boolean);
-
-        if (sources.length === 0) return null;
-
-        return (
-            <div className="mt-4 pt-4 border-t border-white/10">
-                <div className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 flex items-center gap-2">
-                    <Globe size={12} /> Sources Verified
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    {sources.map((s: any, idx: number) => (
-                        <a 
-                            key={idx} 
-                            href={s.uri} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-xs bg-white/5 border border-white/20 px-2 py-1 hover:bg-white hover:text-blue-base truncate max-w-[200px] transition-colors flex items-center gap-1"
-                        >
-                            {s.title || 'External Source'}
-                        </a>
-                    ))}
-                </div>
-            </div>
-        );
-    };
-
-
-    if (!apiKey) {
-        return (
-            <div className="w-full h-full flex items-center justify-center p-8 text-center pt-24">
-                <div className="border-4 border-white p-12 max-w-xl bg-black/20 backdrop-blur-sm">
-                    <AlertTriangle className="w-20 h-20 mx-auto mb-8 text-yellow-400" />
-                    <h2 className="text-3xl font-bold uppercase mb-4">System Offline</h2>
-                    <p className="text-lg opacity-80 mb-6 font-light">Oracle module requires a secure API Key.</p>
-                    <div className="inline-block border border-white/30 px-4 py-2 font-mono text-sm bg-black/40 mb-4">
-                        API KEY MISSING
-                    </div>
-                </div>
-            </div>
-        );
+        apiAttachment = {
+            mimeType: currentAttachment.file.type,
+            data: currentAttachment.base64Data
+        };
     }
 
-    return (
-        <div className="w-full h-full pt-20 px-4 pb-4 md:px-12 md:pb-12 flex flex-col max-w-7xl mx-auto relative">
-            
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6 border-b border-white/20 pb-4 shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 border-2 border-white flex items-center justify-center transition-colors ${isTyping ? 'bg-white text-blue-base' : 'bg-transparent text-white'}`}>
-                        <Cpu size={24} className={isTyping ? 'animate-pulse' : ''} />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold uppercase tracking-widest">Oracle</h1>
-                        <div className="text-xs font-mono opacity-70 flex items-center gap-2">
-                            <span>{MODELS.find(m => m.id === selectedModel)?.name}</span>
-                            {useSearch && <span className="text-blue-300"> // SEARCH ON</span>}
-                        </div>
-                    </div>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                     {isTyping && (
-                        <div className="hidden md:block text-xs font-bold font-mono tracking-widest animate-pulse">
-                            &gt;&gt; PROCESSING STREAM...
-                        </div>
-                    )}
-                    <button 
-                        onClick={() => setShowConfig(!showConfig)}
-                        className={`p-2 border border-white hover:bg-white hover:text-blue-base transition-colors ${showConfig ? 'bg-white text-blue-base' : ''}`}
-                    >
-                        <Settings size={20} />
-                    </button>
-                </div>
-            </div>
+    setMessages(prev => [...prev, newMessage]);
+    setInput('');
+    setAttachment(null);
+    setIsTyping(true);
 
-            {/* Config Panel */}
-            <AnimatePresence>
-                {showConfig && (
-                    <motion.div 
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="bg-blue-900/30 border-b border-white/20 mb-6 overflow-hidden shrink-0"
-                    >
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 opacity-70">Core Model</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {MODELS.map(m => (
-                                            <button 
-                                                key={m.id}
-                                                onClick={() => setSelectedModel(m.id)}
-                                                className={`border border-white/50 p-2 text-left hover:bg-white/10 transition-colors ${selectedModel === m.id ? 'bg-white/20 border-white' : ''}`}
-                                            >
-                                                <div className="font-bold text-xs uppercase">{m.name}</div>
-                                                <div className="text-[10px] opacity-60">{m.desc}</div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+    const response = await sendMessageToOracle(chatSession, userMsgText, apiAttachment);
+    
+    setMessages(prev => [...prev, { role: 'model', text: response }]);
+    setIsTyping(false);
+  };
 
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 opacity-70">Capabilities</label>
-                                    
-                                    <button 
-                                        onClick={() => setUseSearch(!useSearch)}
-                                        className={`w-full border border-white/50 p-2 flex items-center gap-3 transition-colors ${useSearch ? 'bg-white text-blue-base' : 'hover:bg-white/10'}`}
-                                    >
-                                        <div className={`w-4 h-4 border border-current flex items-center justify-center`}>
-                                            {useSearch && <div className="w-2 h-2 bg-current" />}
-                                        </div>
-                                        <div className="text-xs font-bold uppercase">Google Search Grounding</div>
-                                    </button>
-                                </div>
+  if (!apiKeyAvailable) {
+      return (
+          <div className="w-full h-full flex items-center justify-center p-8 text-center pt-24">
+              <div className="border-4 border-white p-12 max-w-xl bg-black/40 backdrop-blur-md">
+                  <AlertTriangle className="w-20 h-20 mx-auto mb-8 text-yellow-400" />
+                  <h2 className="text-3xl font-bold uppercase mb-4">System Offline</h2>
+                  <p className="text-lg opacity-80 mb-6 font-light">Oracle module requires a secure API Key configuration.</p>
+                  <div className="inline-block border border-white/50 px-4 py-2 font-mono text-sm uppercase tracking-widest">Access Config Panel</div>
+              </div>
+          </div>
+      )
+  }
+
+  return (
+    <div className="w-full h-full pt-20 px-4 pb-4 md:px-12 md:pb-12 flex flex-col max-w-6xl mx-auto">
+       {/* Header */}
+       <div className="flex items-center justify-between mb-8 border-b border-white/20 pb-4">
+           <div className="flex items-center gap-4">
+               <div className={`w-12 h-12 border-2 border-white flex items-center justify-center transition-colors ${isTyping ? 'bg-white text-blue-base' : 'bg-transparent text-white'}`}>
+                   <Cpu size={24} className={isTyping ? 'animate-pulse' : ''} />
+               </div>
+               <div>
+                   <h1 className="text-2xl font-bold uppercase tracking-widest">Oracle</h1>
+                   <div className="text-xs font-mono opacity-70">
+                       Model: Gemini 1.5 Flash // Latency: Low
+                   </div>
+               </div>
+           </div>
+           
+           {/* Processing Indicator */}
+           {isTyping && (
+               <div className="hidden md:block text-xs font-bold font-mono tracking-widest animate-pulse text-right">
+                   &gt;&gt; PROCESSING DATA STREAM...
+               </div>
+           )}
+       </div>
+
+       {/* Chat Area */}
+       <div 
+         ref={scrollRef}
+         className="flex-1 border-4 border-white p-6 overflow-y-auto hide-scrollbar flex flex-col gap-6"
+         style={{ 
+             backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', 
+             backgroundSize: '40px 40px',
+             backgroundAttachment: 'local'
+         }}
+       >
+         {messages.map((msg, idx) => (
+             <motion.div 
+                key={idx}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`max-w-[80%] p-6 border-2 shadow-[0_0_15px_rgba(0,0,0,0.3)] ${msg.role === 'user' ? 'self-end border-white bg-white text-blue-base text-right' : 'self-start border-white bg-[#0047FF]/20 text-white backdrop-blur-sm'}`}
+             >
+                 <div className="text-[10px] font-bold uppercase opacity-50 mb-2 tracking-widest">{msg.role === 'user' ? 'OPERATOR' : 'ORACLE'}</div>
+                 
+                 {/* Attachment Display */}
+                 {msg.attachment && (
+                     <div className={`mb-3 flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                         {msg.attachment.mimeType.startsWith('image/') ? (
+                             <img 
+                                src={msg.attachment.previewUrl} 
+                                alt="attachment" 
+                                className="max-w-full max-h-[300px] border border-current opacity-90"
+                             />
+                         ) : (
+                             <div className="flex items-center gap-2 border border-current px-3 py-2 text-xs font-bold uppercase">
+                                 <FileText size={16} />
+                                 {msg.attachment.name}
+                             </div>
+                         )}
+                     </div>
+                 )}
+
+                 <div className="text-lg md:text-xl font-medium leading-relaxed font-sans whitespace-pre-wrap">{msg.text}</div>
+             </motion.div>
+         ))}
+       </div>
+
+       {/* Input Area */}
+       <div className="mt-6 flex flex-col gap-2">
+           {/* Preview Area */}
+           <AnimatePresence>
+               {attachment && (
+                   <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="flex items-center gap-2 bg-white/10 border border-white p-2 w-max max-w-full"
+                   >
+                        {attachment.file.type.startsWith('image/') ? (
+                            <img src={attachment.previewUrl} alt="preview" className="h-12 w-12 object-cover border border-white/50" />
+                        ) : (
+                            <div className="h-12 w-12 flex items-center justify-center border border-white/50 bg-white/5">
+                                <FileText size={24} />
                             </div>
-
-                            <div>
-                                <label className="block text-xs font-bold uppercase tracking-widest mb-2 opacity-70">System Directive</label>
-                                <textarea 
-                                    value={systemInstruction}
-                                    onChange={(e) => setSystemInstruction(e.target.value)}
-                                    className="w-full h-32 bg-black/40 border border-white/50 p-3 text-xs font-mono outline-none focus:border-white resize-none"
-                                />
-                            </div>
+                        )}
+                        <div className="flex flex-col min-w-0 mr-4">
+                            <span className="text-xs font-bold uppercase truncate max-w-[200px]">{attachment.file.name}</span>
+                            <span className="text-[10px] font-mono opacity-60">{(attachment.file.size / 1024).toFixed(1)} KB</span>
                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        <button onClick={clearAttachment} className="p-1 hover:bg-white hover:text-blue-base transition-colors">
+                            <X size={16} />
+                        </button>
+                   </motion.div>
+               )}
+           </AnimatePresence>
 
-            {/* Chat Area */}
-            <div 
-                ref={scrollRef}
-                className="flex-1 border-4 border-white p-6 overflow-y-auto hide-scrollbar flex flex-col gap-8 mb-6 relative"
-                style={{
-                    backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)',
-                    backgroundSize: '20px 20px'
-                }}
-            >
-                {messages.map((msg) => (
-                    <motion.div 
-                        key={msg.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`flex flex-col gap-2 max-w-[90%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
-                    >
-                        <div className="flex items-center gap-2">
-                            <div className="text-[10px] font-bold uppercase opacity-50 tracking-widest">
-                                {msg.role === 'user' ? 'OPERATOR' : 'ORACLE'}
-                            </div>
-                            <div className="text-[10px] font-mono opacity-30">
-                                {new Date(msg.timestamp).toLocaleTimeString()}
-                            </div>
-                        </div>
+           <form onSubmit={handleSend} className="h-20 flex gap-4">
+               {/* Hidden File Input */}
+               <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="image/*,application/pdf"
+               />
 
-                        <div className={`p-4 backdrop-blur-md ${msg.role === 'user' ? 'bg-white text-blue-base text-right rounded-bl-xl border-2 border-white' : 'bg-[#0047FF]/20 rounded-br-xl border-2 border-white/20'}`}>
-                            {/* Attachments */}
-                            {msg.parts.some(p => p.inlineData) && (
-                                <div className="flex flex-wrap gap-2 mb-3 justify-end">
-                                    {msg.parts.filter(p => p.inlineData).map((p, idx) => (
-                                        <div key={idx} className="relative group">
-                                            {p.inlineData?.mimeType.startsWith('image/') ? (
-                                                <img 
-                                                    src={`data:${p.inlineData.mimeType};base64,${p.inlineData.data}`} 
-                                                    alt="attachment" 
-                                                    className="h-32 w-auto object-cover border border-white/50"
-                                                />
-                                            ) : (
-                                                <div className="h-20 w-20 flex items-center justify-center border border-white/50 bg-black/50">
-                                                    <FileText size={24} />
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+               <div className="flex-1 flex gap-2 relative">
+                   <input 
+                      type="text" 
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      className="w-full h-full bg-transparent border-2 border-white pl-6 pr-14 text-xl font-bold uppercase placeholder-white/40 focus:bg-white/10 outline-none transition-colors"
+                      placeholder={attachment ? "Add context..." : "Enter Query..."}
+                      autoFocus
+                   />
+                   
+                   {/* Attachment Button */}
+                   <button 
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100 hover:text-blue-300 transition-all"
+                      title="Attach File"
+                   >
+                       <Paperclip size={20} />
+                   </button>
+               </div>
 
-                            {/* Text */}
-                            {msg.parts.some(p => p.text) && (
-                                <div className={`text-base md:text-lg leading-relaxed font-light whitespace-pre-wrap ${msg.role === 'user' ? '' : 'font-mono'}`}>
-                                    {renderMarkdown(msg.parts.find(p => p.text)?.text || '')}
-                                </div>
-                            )}
-
-                            {/* Grounding Sources */}
-                            {msg.role === 'model' && renderGrounding(msg.groundingMetadata)}
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
-
-            {/* Input Area */}
-            <div className="shrink-0 relative">
-                {/* File Preview */}
-                {files.length > 0 && (
-                    <div className="absolute bottom-full left-0 mb-4 flex gap-2 overflow-x-auto max-w-full pb-2">
-                        {files.map(f => (
-                            <div key={f.id} className="relative group shrink-0 border border-white bg-black h-20 w-20">
-                                {f.mimeType.startsWith('image/') ? (
-                                    <img src={f.preview} className="w-full h-full object-cover opacity-50 group-hover:opacity-100 transition-opacity" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center"><FileText /></div>
-                                )}
-                                <button 
-                                    onClick={() => removeFile(f.id)}
-                                    className="absolute -top-2 -right-2 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                    <X size={12} />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                <form onSubmit={handleSend} className="flex gap-0 relative">
-                    {/* Attachment Button */}
-                    <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        multiple 
-                        className="hidden" 
-                        onChange={handleFileSelect}
-                        // Accept broadly, but image is best supported
-                        accept="image/*,application/pdf,text/*"
-                    />
-                    <button 
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-14 h-16 border-y-2 border-l-2 border-white flex items-center justify-center hover:bg-white hover:text-blue-base transition-colors"
-                    >
-                        <Paperclip size={20} />
-                    </button>
-
-                    <textarea 
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSend();
-                            }
-                        }}
-                        className="flex-1 h-16 bg-transparent border-2 border-white px-4 py-4 text-lg font-bold uppercase placeholder-white/30 focus:bg-white/5 outline-none transition-colors resize-none hide-scrollbar"
-                        placeholder="TRANSMIT QUERY..."
-                    />
-
-                    <button 
-                        type="submit" 
-                        disabled={isTyping || (!input.trim() && files.length === 0)}
-                        className="w-20 h-16 border-y-2 border-r-2 border-white flex items-center justify-center hover:bg-white hover:text-black transition-colors disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-white"
-                    >
-                        <Send size={24} />
-                    </button>
-                </form>
-            </div>
-        </div>
-    );
+               <button 
+                  type="submit" 
+                  disabled={isTyping || (!input.trim() && !attachment)}
+                  className="w-20 border-2 border-white flex items-center justify-center hover:bg-white hover:text-blue-base transition-colors disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-white"
+               >
+                   <Send size={24} />
+               </button>
+           </form>
+       </div>
+    </div>
+  );
 };
