@@ -18,6 +18,7 @@ import { Whiteboard } from './pages/Whiteboard';
 import { Games } from './pages/Games';
 import { Weather } from './pages/Weather';
 import { News } from './pages/News';
+import { IDE } from './pages/IDE';
 import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink, LinkOpenMode } from './types';
 
 const App: React.FC = () => {
@@ -444,6 +445,8 @@ const App: React.FC = () => {
       content = <Weather />;
   } else if (pathname === '/news') {
       content = <News linkOpenMode={linkOpenMode} />;
+  } else if (pathname === '/ide') {
+      content = <IDE />;
   }
   else if (pathname === '/config') {
       content = <Config 
