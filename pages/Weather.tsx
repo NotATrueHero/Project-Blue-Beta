@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Cloud, Sun, CloudRain, Wind, Droplets, Thermometer, MapPin, RefreshCw, Navigation } from 'lucide-react';
+import { Cloud, Sun, CloudRain, Wind, Droplets, MapPin, RefreshCw, Navigation } from 'lucide-react';
 
 interface WeatherData {
     temperature: number;
@@ -14,7 +14,7 @@ interface WeatherData {
 export const Weather: React.FC = () => {
     const [data, setData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(false);
-    const [locationName, setLocationName] = useState('LOCAL SECTOR');
+    // const [locationName, setLocationName] = useState('LOCAL SECTOR'); // Unused state
     const [error, setError] = useState<string | null>(null);
 
     const fetchWeather = async () => {
@@ -104,7 +104,7 @@ export const Weather: React.FC = () => {
                         {/* MAIN DISPLAY */}
                         <div className="border-4 border-white p-8 flex flex-col items-center justify-center text-center bg-white/5 relative overflow-hidden">
                              <div className="absolute top-4 left-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest opacity-60">
-                                 <MapPin size={14} /> {locationName}
+                                 <MapPin size={14} /> LOCAL SECTOR
                              </div>
                              
                              <div className="mb-6 animate-pulse">

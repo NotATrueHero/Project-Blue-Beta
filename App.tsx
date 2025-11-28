@@ -20,7 +20,8 @@ import { Weather } from './pages/Weather';
 import { News } from './pages/News';
 import { IDE } from './pages/IDE';
 import { Calculator } from './pages/Calculator';
-import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent, FluidBackground } from './types';
+import { Nexus } from './pages/Nexus';
+import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent, FluidBackground, ServerEndpoint } from './types';
 
 const App: React.FC = () => {
   const [bootStatus, setBootStatus] = useState<'booting' | 'locked' | 'unlocked'>('booting');
@@ -38,6 +39,7 @@ const App: React.FC = () => {
   const [greetingEnabled, setGreetingEnabled] = useState(false);
   const [greetingText, setGreetingText] = useState('WELCOME COMMANDER');
   const [authEnabled, setAuthEnabled] = useState(true);
+  const [nexusEnabled, setNexusEnabled] = useState(false);
 
   // --- UI STATE ---
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -81,6 +83,7 @@ const App: React.FC = () => {
     
     const cachedGreetingEnabled = localStorage.getItem('blue_greeting_enabled');
     const cachedGreetingText = localStorage.getItem('blue_greeting_text');
+    const cachedNexusEnabled = localStorage.getItem('blue_nexus_enabled');
     
     // Auth Enabled check (default true if missing)
     const cachedAuthEnabled = localStorage.getItem('blue_auth_enabled');
@@ -99,6 +102,7 @@ const App: React.FC = () => {
       if (cachedWidgetPos) setWidgetPosition(cachedWidgetPos);
       if (cachedGreetingEnabled) setGreetingEnabled(cachedGreetingEnabled === 'true');
       if (cachedGreetingText) setGreetingText(cachedGreetingText);
+      if (cachedNexusEnabled) setNexusEnabled(cachedNexusEnabled === 'true');
       
       setBootStatus(isAuthEnabled ? 'locked' : 'unlocked');
     }
@@ -323,7 +327,9 @@ const App: React.FC = () => {
       loadedAuthEnabled?: boolean,
       loadedLinkOpenMode?: LinkOpenMode,
       loadedFluidAccent?: FluidAccent,
-      loadedFluidBackground?: FluidBackground
+      loadedFluidBackground?: FluidBackground,
+      loadedNexusEndpoints?: ServerEndpoint[],
+      loadedNexusEnabled?: boolean
   ) => {
     setSessionPin(pin);
     if (loadedTheme) setTheme(loadedTheme);
@@ -337,6 +343,11 @@ const App: React.FC = () => {
     if (loadedWidgetPos) setWidgetPosition(loadedWidgetPos);
     if (loadedGreetingEnabled !== undefined) setGreetingEnabled(loadedGreetingEnabled);
     if (loadedGreetingText) setGreetingText(loadedGreetingText);
+    if (loadedNexusEnabled !== undefined) setNexusEnabled(loadedNexusEnabled);
+    
+    // Nexus endpoints are handled internally by Nexus page via localStorage, 
+    // but we load them here just to confirm data integrity if needed, 
+    // though Config/Nexus usually read directly. BootLoader seeds localStorage.
     
     const shouldAuth = loadedAuthEnabled !== undefined ? loadedAuthEnabled : true;
     setAuthEnabled(shouldAuth);
@@ -405,6 +416,11 @@ const App: React.FC = () => {
       localStorage.setItem('blue_auth_enabled', String(enabled));
   };
 
+  const updateNexusEnabled = (enabled: boolean) => {
+      setNexusEnabled(enabled);
+      localStorage.setItem('blue_nexus_enabled', String(enabled));
+  };
+
   if (bootStatus === 'booting') {
       return <BootLoader onLoadComplete={handleBootComplete} />;
   }
@@ -419,6 +435,7 @@ const App: React.FC = () => {
   else if (pathname === '/oracle') content = <Oracle />;
   else if (pathname === '/uplink') content = <Bookmarks linkOpenMode={linkOpenMode} />;
   else if (pathname === '/files') content = <Files />;
+  else if (pathname === '/nexus') content = <Nexus />;
   else if (pathname === '/music') {
       content = <Music 
           playlists={playlists}
@@ -483,6 +500,8 @@ const App: React.FC = () => {
           onGreetingTextChange={updateGreetingText}
           authEnabled={authEnabled}
           onAuthEnabledChange={updateAuthEnabled}
+          nexusEnabled={nexusEnabled}
+          onNexusEnabledChange={updateNexusEnabled}
           musicPlaylists={playlists} 
           audioState={{ volume, loopMode, shuffle }} 
       />;
@@ -499,6 +518,7 @@ const App: React.FC = () => {
         fluidAccent={fluidAccent}
         fluidBackground={fluidBackground}
         sidebarOpen={sidebarOpen}
+        nexusEnabled={nexusEnabled}
       />
   );
 

@@ -42,6 +42,12 @@ export interface QuickLink {
     url: string;
 }
 
+export interface ServerEndpoint {
+    id: string;
+    name: string;
+    url: string;
+}
+
 export interface ToolItem {
   id: string;
   number: string;
@@ -122,6 +128,9 @@ export interface UserData {
   taskLists: TaskList[];
   bookmarkCategories: BookmarkCategory[];
   quickLinks?: QuickLink[]; 
+  nexusEndpoints?: ServerEndpoint[];
+  nexusEnabled?: boolean;
+
   files: FileItem[];
   fileFolders: FileFolder[]; 
 }

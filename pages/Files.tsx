@@ -129,7 +129,7 @@ export const Files: React.FC = () => {
       }
   };
 
-  const handleRename = (id: string, type: 'file' | 'folder', currentName: string) => {
+  const handleRename = (id: string, currentName: string) => {
       setRenamingId(id);
       setRenameValue(currentName);
   };
@@ -300,12 +300,12 @@ export const Files: React.FC = () => {
                               className="bg-transparent border-b border-current w-full outline-none text-xs uppercase pointer-events-auto"
                           />
                       ) : (
-                        <span className="uppercase text-xs truncate pointer-events-auto" onDoubleClick={() => handleRename(folder.id, 'folder', folder.name)}>{folder.name}</span>
+                        <span className="uppercase text-xs truncate pointer-events-auto" onDoubleClick={() => handleRename(folder.id, folder.name)}>{folder.name}</span>
                       )}
                   </div>
                   
                   <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={(e) => {e.stopPropagation(); handleRename(folder.id, 'folder', folder.name); }} className="hover:text-blue-300 mr-1"><Edit2 size={10} /></button>
+                        <button onClick={(e) => {e.stopPropagation(); handleRename(folder.id, folder.name); }} className="hover:text-blue-300 mr-1"><Edit2 size={10} /></button>
                         <button onClick={(e) => deleteFolder(e, folder.id)} className="hover:text-red-500"><Trash2 size={10} /></button>
                   </div>
               </div>
@@ -502,7 +502,7 @@ export const Files: React.FC = () => {
                                                 ) : (
                                                     <div 
                                                         className="font-bold text-xs uppercase truncate mb-1"
-                                                        onDoubleClick={(e) => { e.stopPropagation(); handleRename(file.id, 'file', file.name); }}
+                                                        onDoubleClick={(e) => { e.stopPropagation(); handleRename(file.id, file.name); }}
                                                     >
                                                         {file.name}
                                                     </div>
@@ -565,7 +565,7 @@ export const Files: React.FC = () => {
                             ) : (
                                 <div className="flex items-center gap-2 font-bold uppercase tracking-wider truncate max-w-[200px] md:max-w-md">
                                     {selectedFile.name}
-                                    <button onClick={() => handleRename(selectedFile.id, 'file', selectedFile.name)} className="opacity-50 hover:opacity-100 hover:text-blue-300"><Edit2 size={12} /></button>
+                                    <button onClick={() => handleRename(selectedFile.id, selectedFile.name)} className="opacity-50 hover:opacity-100 hover:text-blue-300"><Edit2 size={12} /></button>
                                 </div>
                             )}
                         </div>

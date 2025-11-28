@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Plus, Trash2, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Repeat1, Volume2, Upload, GripVertical, ListMusic } from 'lucide-react';
+import { Plus, Trash2, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Repeat1, Volume2, GripVertical, ListMusic } from 'lucide-react';
 import { Track, MusicPlaylist, LoopMode } from '../types';
 
 interface MusicProps {

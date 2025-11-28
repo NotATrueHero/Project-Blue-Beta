@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gamepad2, Grid3X3, Trophy, ArrowLeft, RefreshCw, Box, Move, Hash, Circle, Square } from 'lucide-react';
+import { Gamepad2, Grid3X3, ArrowLeft, Box, Move, Hash, Circle, Square } from 'lucide-react';
 
 type GameMode = 'menu' | 'tictactoe' | 'chess' | 'bird' | 'platformer' | 'probability';
 

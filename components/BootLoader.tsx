@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Power, AlertTriangle } from 'lucide-react';
-import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent, FluidBackground } from '../types';
+import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent, FluidBackground, ServerEndpoint } from '../types';
 
 interface BootLoaderProps {
   onLoadComplete: (
@@ -21,7 +21,9 @@ interface BootLoaderProps {
       authEnabled?: boolean,
       linkOpenMode?: LinkOpenMode,
       fluidAccent?: FluidAccent,
-      fluidBackground?: FluidBackground
+      fluidBackground?: FluidBackground,
+      nexusEndpoints?: ServerEndpoint[],
+      nexusEnabled?: boolean
   ) => void;
 }
 
@@ -78,6 +80,9 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         const quickLinks: QuickLink[] = data.quickLinks || [];
         const authEnabled = data.authEnabled !== undefined ? data.authEnabled : true;
         const linkOpenMode: LinkOpenMode = data.linkOpenMode || 'new_tab';
+        
+        const nexusEndpoints: ServerEndpoint[] = data.nexusEndpoints || [];
+        const nexusEnabled = data.nexusEnabled !== undefined ? data.nexusEnabled : false;
 
         // Seed LocalStorage
         localStorage.setItem('blue_pin', data.pin);
@@ -92,6 +97,9 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         localStorage.removeItem('blue_uplinks');
         
         if (quickLinks.length > 0) localStorage.setItem('blue_quick_links', JSON.stringify(quickLinks));
+        
+        localStorage.setItem('blue_nexus_endpoints', JSON.stringify(nexusEndpoints));
+        localStorage.setItem('blue_nexus_enabled', String(nexusEnabled));
 
         localStorage.setItem('blue_files', JSON.stringify(data.files || []));
         localStorage.setItem('blue_file_folders', JSON.stringify(data.fileFolders || [])); 
@@ -138,7 +146,9 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
                 authEnabled,
                 linkOpenMode,
                 data.fluidAccent,
-                data.fluidBackground
+                data.fluidBackground,
+                nexusEndpoints,
+                nexusEnabled
             );
         }, 800);
 
@@ -165,7 +175,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         localStorage.setItem('blue_theme', 'standard');
     
         // Boot without auth
-        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined, true, 'new_tab', 'teal', 'deep');
+        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined, true, 'new_tab', 'teal', 'deep', [], false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,6 +1,6 @@
 
 import * as React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Plus, Trash2, Save, Folder, FolderPlus, GripVertical, ChevronRight, Eye, Edit3, FileText, Download, HardDrive, Hash, List, Type, Bold, Italic } from 'lucide-react';
 import { Note, NoteFolder, FileItem } from '../types';
@@ -218,7 +218,7 @@ export const Notes: React.FC = () => {
       const parts: React.ReactNode[] = [];
       
       // Helper to push text
-      const pushText = (t: string) => parts.push(t);
+      // const pushText = (t: string) => parts.push(t); // Unused
 
       // We'll process WikiLinks [[Link]] first as they are most complex
       const wikiRegex = /\[\[(.*?)\]\]/g;

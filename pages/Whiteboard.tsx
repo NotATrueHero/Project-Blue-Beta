@@ -1,8 +1,8 @@
 
 import * as React from 'react';
-import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { motion } from 'framer-motion';
-import { PenTool, Eraser, Trash2, Save, Undo, GripHorizontal, Square } from 'lucide-react';
+import { PenTool, Eraser, Trash2, Save } from 'lucide-react';
 import { FileItem } from '../types';
 
 const COLORS = [

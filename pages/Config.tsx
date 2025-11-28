@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert, Info, Droplets, Palette, Box, Grid } from 'lucide-react';
+import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert, Info, Droplets, Palette, Box, Grid, Server } from 'lucide-react';
 import { UserData, Theme, MusicPlaylist, LoopMode, WidgetPosition, LinkOpenMode, FluidAccent, FluidBackground } from '../types';
 
 interface ConfigProps {
@@ -28,6 +28,8 @@ interface ConfigProps {
     onGreetingTextChange: (text: string) => void;
     authEnabled: boolean;
     onAuthEnabledChange: (enabled: boolean) => void;
+    nexusEnabled: boolean;
+    onNexusEnabledChange: (enabled: boolean) => void;
     musicPlaylists: MusicPlaylist[];
     audioState: {
         volume: number;
@@ -48,6 +50,7 @@ export const Config: React.FC<ConfigProps> = ({
     greetingEnabled, onGreetingEnabledChange,
     greetingText, onGreetingTextChange,
     authEnabled, onAuthEnabledChange,
+    nexusEnabled, onNexusEnabledChange,
     musicPlaylists, audioState 
 }) => {
   const [currentPin, setCurrentPin] = useState('');
@@ -85,6 +88,7 @@ export const Config: React.FC<ConfigProps> = ({
     const storedApiKey = localStorage.getItem('blue_api_key') || undefined;
     const bookmarkCategories = JSON.parse(localStorage.getItem('blue_uplink_categories') || '[]');
     const quickLinks = JSON.parse(localStorage.getItem('blue_quick_links') || '[]');
+    const nexusEndpoints = JSON.parse(localStorage.getItem('blue_nexus_endpoints') || '[]');
 
     const data: UserData = {
         version: '2.7',
@@ -100,6 +104,8 @@ export const Config: React.FC<ConfigProps> = ({
         widgetPosition: widgetPos,
         greetingEnabled,
         greetingText,
+        nexusEnabled,
+        nexusEndpoints,
         apiKey: storedApiKey,
         musicPlaylists,
         volume: audioState.volume,
@@ -357,6 +363,22 @@ export const Config: React.FC<ConfigProps> = ({
                             <button type="submit" className="text-xs font-bold uppercase border border-white px-3 hover:bg-white hover:text-black">Save</button>
                         </form>
                     )}
+                </div>
+
+                {/* Nexus Module Toggle */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="font-bold uppercase tracking-wider mb-1 flex items-center gap-2">
+                             <Server size={16} /> Nexus Module
+                        </div>
+                        <div className="text-xs opacity-60">Home server & local monitoring hub</div>
+                    </div>
+                    <button 
+                        onClick={() => onNexusEnabledChange(!nexusEnabled)}
+                        className={`border border-white py-1 px-3 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all ${nexusEnabled ? 'bg-white text-black' : 'text-white'}`}
+                    >
+                        {nexusEnabled ? 'ENABLED' : 'DISABLED'}
+                    </button>
                 </div>
 
                 {/* Widget Position (Hidden in Fluid/Vanta Mode) */}

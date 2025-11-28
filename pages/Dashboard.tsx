@@ -27,11 +27,14 @@ const tools: ToolItem[] = [
   { id: 'whiteboard', number: '10 / TOOL', category: 'TOOL', title: 'Whiteboard', description: 'Tactical diagramming surface. Capture schematics directly to the vault.', path: '/whiteboard', imageText: 'DIAGRAM', keywords: ['draw', 'paint', 'sketch', 'image', 'art'] },
   { id: 'ide', number: '11 / DEV', category: 'DEV', title: 'Script Terminal', description: 'Client-side code execution environment. Supports interactive Python and JavaScript.', path: '/ide', imageText: 'SCRIPT EXEC', keywords: ['code', 'python', 'js', 'javascript', 'program', 'develop', 'terminal'] },
   { id: 'cipher', number: '12 / SEC', category: 'SEC', title: 'Cipher', description: 'Cryptographic translation engine for secure message encoding.', path: '/cipher', imageText: 'ENCRYPT', keywords: ['secret', 'hide', 'encode', 'decode', 'hash', 'security'] },
-
+  
   // ROW 5
   { id: 'chronos', number: '13 / TOOL', category: 'TOOL', title: 'Chronos', description: 'Tactical countdown timer for operational focus intervals.', path: '/chronos', imageText: 'TIMER', keywords: ['clock', 'watch', 'stopwatch', 'alarm', 'focus'] },
   { id: 'games', number: '14 / ENT', category: 'ENT', title: 'Games', description: 'Cognitive training simulations and probability engines.', path: '/games', imageText: 'SIMULATE', keywords: ['play', 'fun', 'chess', 'arcade'] },
   { id: 'config', number: '15 / SYS', category: 'SYS', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP', keywords: ['settings', 'option', 'preferences', 'theme', 'admin'] },
+  
+  // ROW 6 - Optional Nexus Module (Last so if hidden, numbering is continuous 1-15)
+  { id: 'nexus', number: '16 / NET', category: 'NET', title: 'Nexus', description: 'Central command hub for local server monitoring and homelab services.', path: '/nexus', imageText: 'SERVER HUB', keywords: ['server', 'home', 'lab', 'monitor', 'ping', 'portainer', 'proxmox'] },
 ];
 
 // FLUID SECTOR MAPPING
@@ -74,6 +77,7 @@ interface DashboardProps {
     fluidAccent?: FluidAccent;
     fluidBackground?: FluidBackground;
     sidebarOpen?: boolean;
+    nexusEnabled?: boolean;
 }
 
 interface SystemWidgetProps {
@@ -85,7 +89,6 @@ interface SystemWidgetProps {
 
 // Reusable System Widget Component (Grid/Hero Mode)
 const SystemWidget: React.FC<SystemWidgetProps> = ({ mode, linkOpenMode, toolSearchQuery, onToolSearch }) => {
-    // ... (Existing SystemWidget code logic is unchanged)
     const [time, setTime] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
     const [quickLinks, setQuickLinks] = useState<QuickLink[]>([]);
@@ -289,13 +292,13 @@ const SystemWidget: React.FC<SystemWidgetProps> = ({ mode, linkOpenMode, toolSea
 
     return (
         <div className="w-full h-full flex flex-col justify-center gap-4">
-             <div className="flex flex-col gap-4 w-full">
-                <div className="w-full h-16 flex items-center justify-center border-2 border-white font-mono text-2xl font-bold tracking-widest bg-white/5 px-6">
+             <div className={`flex flex-col gap-4 w-full ${mode === 'card' ? '' : ''}`}>
+                <div className={`w-full ${mode === 'card' ? 'h-14 text-xl' : 'h-16 text-2xl'} flex items-center justify-center border-2 border-white font-mono font-bold tracking-widest bg-white/5 px-6`}>
                     {time.toLocaleTimeString([], { hour12: false })}
                 </div>
                 
-                <form onSubmit={handleSearch} className="w-full h-16 flex relative">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={24} />
+                <form onSubmit={handleSearch} className={`w-full ${mode === 'card' ? 'h-14' : 'h-16'} flex relative`}>
+                    <Search className={`absolute left-6 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none ${mode === 'card' ? 'w-4 h-4' : 'w-6 h-6'}`} />
                     <input 
                         ref={netSearchRef}
                         type="text" 
@@ -305,12 +308,12 @@ const SystemWidget: React.FC<SystemWidgetProps> = ({ mode, linkOpenMode, toolSea
                             ensureVisible(netSearchRef);
                         }}
                         placeholder="NET SEARCH..."
-                        className="w-full h-full bg-white/5 border-2 border-white pl-14 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors text-lg"
+                        className={`w-full h-full bg-white/5 border-2 border-white pl-14 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors ${mode === 'card' ? 'text-base' : 'text-lg'}`}
                     />
                 </form>
 
-                <div className="w-full h-16 flex relative z-50">
-                    <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={24} />
+                <div className={`w-full ${mode === 'card' ? 'h-14' : 'h-16'} flex relative z-50`}>
+                    <Terminal className={`absolute left-6 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none ${mode === 'card' ? 'w-4 h-4' : 'w-6 h-6'}`} />
                     <form onSubmit={handleToolSubmit} className="w-full h-full">
                         <input 
                             ref={toolSearchRef}
@@ -322,7 +325,7 @@ const SystemWidget: React.FC<SystemWidgetProps> = ({ mode, linkOpenMode, toolSea
                             }}
                             onKeyDown={handleKeyDown}
                             placeholder="FIND TOOL..."
-                            className="w-full h-full bg-white/5 border-2 border-white pl-14 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors text-lg"
+                            className={`w-full h-full bg-white/5 border-2 border-white pl-14 pr-4 font-bold uppercase placeholder-white/40 outline-none focus:bg-white focus:text-blue-base transition-colors ${mode === 'card' ? 'text-base' : 'text-lg'}`}
                         />
                     </form>
                     
@@ -414,7 +417,7 @@ const SystemWidget: React.FC<SystemWidgetProps> = ({ mode, linkOpenMode, toolSea
 };
 
 
-export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect, widgetPosition, greetingEnabled, greetingText, linkOpenMode, theme, fluidAccent = 'teal', fluidBackground = 'deep', sidebarOpen }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect, widgetPosition, greetingEnabled, greetingText, linkOpenMode, theme, fluidAccent = 'teal', fluidBackground = 'deep', sidebarOpen, nexusEnabled }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const [toolSearchQuery, setToolSearchQuery] = useState('');
@@ -480,6 +483,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
 
   // Filter tools based on search query and theme-specific category logic
   const filteredTools = tools.filter(tool => {
+      // Filter Nexus if disabled
+      if (tool.id === 'nexus' && !nexusEnabled) return false;
+
       const q = toolSearchQuery.toLowerCase();
       const matchesSearch = (
           tool.id.toLowerCase().includes(q) ||
@@ -525,14 +531,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
   const clearVantaSearch = () => {
       setToolSearchQuery('');
       setVantaInput('');
-  };
-
-  const nextSector = () => {
-      setCurrentSectorIndex(prev => (prev + 1) % SECTORS.length);
-  };
-
-  const prevSector = () => {
-      setCurrentSectorIndex(prev => (prev - 1 + SECTORS.length) % SECTORS.length);
   };
 
   // --- DYNAMIC FLUID STYLES (MINIMALIST VERSION) ---
@@ -1070,8 +1068,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
             )}
 
             {filteredTools.length > 0 ? (
-                filteredTools.map((tool, index) => (
-                    <ToolCard key={tool.id} tool={tool} mode={viewMode} index={index} />
+                filteredTools.map((tool) => (
+                    <ToolCard key={tool.id} tool={tool} mode={viewMode} />
                 ))
             ) : (
                 <div className={`col-span-full py-20 text-center opacity-50 uppercase tracking-widest ${viewMode === ViewMode.LIST ? 'w-full' : ''}`}>
@@ -1084,7 +1082,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
   );
 };
 
-const ToolCard: React.FC<{ tool: ToolItem; mode: ViewMode; index: number }> = ({ tool, mode, index }) => {
+const ToolCard: React.FC<{ tool: ToolItem; mode: ViewMode }> = ({ tool, mode }) => {
     return (
         <section 
             className={`transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col justify-center relative

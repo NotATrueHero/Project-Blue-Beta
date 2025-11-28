@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Radio, ExternalLink, RefreshCw, ChevronRight } from 'lucide-react';
+import { Radio, ExternalLink, RefreshCw } from 'lucide-react';
 import { LinkOpenMode } from '../types';
 
 interface NewsItem {
