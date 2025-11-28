@@ -1,59 +1,102 @@
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
-import { GoogleGenerativeAI, ChatSession } from "@google/generative-ai";
-
-// Safe accessor for API Key that prevents ReferenceError in browsers
+// Safe accessor for API Key
 export const getApiKey = (): string | undefined => {
-  // 1. Check Local Storage (User configured)
   const localKey = localStorage.getItem('blue_api_key');
   if (localKey && localKey.trim().length > 0) return localKey.trim();
 
-  // 2. Check Environment Variables (Build time)
   try {
-    // Check if process exists safely (Node.js/Webpack envs)
     // @ts-ignore
     if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
       // @ts-ignore
       return process.env.API_KEY.trim();
     }
-  } catch (e) {
-    // Ignore ReferenceError
-  }
+  } catch (e) {}
   return undefined;
 };
 
-export const createOracleChat = (): ChatSession | null => {
-  const key = getApiKey();
-  if (!key) return null;
+export interface ChatMessage {
+    role: 'user' | 'model';
+    parts: { text?: string; inlineData?: { mimeType: string; data: string } }[];
+}
 
-  try {
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
-        systemInstruction: 'You are "Oracle", a high-level system AI for Project Blue. You are helpful, concise, and speak with a slightly robotic, secure-terminal tone. Keep answers brief. Do not output internal thought traces or reasoning steps.'
-    });
+interface StreamChatParams {
+    apiKey: string;
+    model: string;
+    history: ChatMessage[];
+    message: string;
+    files: { mimeType: string; data: string }[]; // Base64 without prefix
+    systemInstruction?: string;
+    useSearch?: boolean;
+    thinkingBudget?: number;
+}
+
+export const streamChat = async ({
+    apiKey,
+    model,
+    history,
+    message,
+    files,
+    systemInstruction,
+    useSearch,
+    thinkingBudget
+}: StreamChatParams) => {
+    const ai = new GoogleGenAI({ apiKey });
+
+    // Filter valid config options based on model family
+    const tools = useSearch ? [{ googleSearch: {} }] : undefined;
     
-    const chat = model.startChat({
-        history: [],
-        generationConfig: {
-            maxOutputTokens: 1000,
-        }
+    // Thinking config is only for 2.5 models and when budget > 0
+    const thinkingConfig = (thinkingBudget && thinkingBudget > 0 && model.includes('2.5')) 
+        ? { thinkingBudget } 
+        : undefined;
+
+    const chat = ai.chats.create({
+        model,
+        config: {
+            systemInstruction,
+            tools,
+            thinkingConfig
+        },
+        history: history.map(h => ({
+            role: h.role,
+            parts: h.parts.map(p => {
+                if (p.inlineData) {
+                     return { inlineData: { mimeType: p.inlineData.mimeType, data: p.inlineData.data } };
+                }
+                return { text: p.text };
+            })
+        }))
     });
-    
-    return chat;
-  } catch (e) {
-    console.error("Failed to create chat session", e);
-    return null;
-  }
+
+    const userParts: any[] = [];
+    if (message) userParts.push({ text: message });
+    files.forEach(f => {
+        userParts.push({ inlineData: { mimeType: f.mimeType, data: f.data } });
+    });
+
+    const result = await chat.sendMessageStream({ message: userParts });
+    return { stream: result };
 };
 
-export const sendMessageToOracle = async (chat: ChatSession, message: string): Promise<string> => {
-  try {
-    const result = await chat.sendMessage(message);
-    const response = await result.response;
-    return response.text();
-  } catch (error) {
-    console.error("Oracle Connection Failure:", error);
-    // Return the actual error message if safe, or a generic one
-    return `ERR: Connection Lost. Server responded with: ${error instanceof Error ? error.message : 'Unknown Error'}`;
-  }
+export const generateSpeech = async (apiKey: string, text: string): Promise<string | undefined> => {
+    try {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-preview-tts",
+            contents: { parts: [{ text }] },
+            config: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                    voiceConfig: {
+                        prebuiltVoiceConfig: { voiceName: 'Kore' },
+                    },
+                },
+            },
+        });
+        return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    } catch (e) {
+        console.error("TTS Generation failed", e);
+        return undefined;
+    }
 };

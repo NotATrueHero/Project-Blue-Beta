@@ -44,7 +44,8 @@ const App: React.FC = () => {
   const [showViewToggle, setShowViewToggle] = useState(false);
 
   // --- AUDIO ENGINE 2.0 STATE ---
-  const audioRef = useRef<HTMLAudioElement>(new Audio());
+  // Fix: Initialize Audio lazily via state to ensure single instance and avoid render side-effects
+  const [audioElement] = useState(() => new Audio());
   const [playlists, setPlaylists] = useState<MusicPlaylist[]>([]);
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
   
@@ -178,25 +179,28 @@ const App: React.FC = () => {
   // Audio Event Listeners
   // Sync Audio Element
   useEffect(() => {
-      const audio = audioRef.current;
-      audio.volume = volume;
-  }, [volume]);
+      audioElement.volume = volume;
+  }, [volume, audioElement]);
 
   useEffect(() => {
-      const audio = audioRef.current;
       if (currentTrack) {
-          if (audio.src !== currentTrack.url) {
-              audio.src = currentTrack.url;
-              if (isPlaying) audio.play().catch(e => console.error("Play error", e));
+          if (audioElement.src !== currentTrack.url) {
+              audioElement.src = currentTrack.url;
+              if (isPlaying) {
+                  audioElement.play().catch(e => console.error("Play error", e));
+              }
           } else {
-              if (isPlaying) audio.play();
-              else audio.pause();
+              if (isPlaying) {
+                  audioElement.play().catch(e => console.error("Play error", e));
+              } else {
+                  audioElement.pause();
+              }
           }
       } else {
-          audio.pause();
+          audioElement.pause();
           setIsPlaying(false);
       }
-  }, [currentTrack, isPlaying]);
+  }, [currentTrack, isPlaying, audioElement]);
 
   // Player Controls
   const playNext = useCallback(() => {
@@ -267,20 +271,18 @@ const App: React.FC = () => {
   }, [activePlaylist, currentTrackId, shuffle, shuffledQueue]);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    
     const handleEnded = () => {
         if (loopMode === 'one') {
-            audio.currentTime = 0;
-            audio.play();
+            audioElement.currentTime = 0;
+            audioElement.play().catch(e => console.error("Replay error", e));
         } else {
             playNext();
         }
     };
 
-    audio.addEventListener('ended', handleEnded);
-    return () => audio.removeEventListener('ended', handleEnded);
-  }, [playNext, loopMode]); // Depend on playNext which changes with state
+    audioElement.addEventListener('ended', handleEnded);
+    return () => audioElement.removeEventListener('ended', handleEnded);
+  }, [playNext, loopMode, audioElement]); 
 
   // --- STATE SETTERS (With Persistence) ---
   const updatePlaylists = (newPlaylists: MusicPlaylist[]) => {
