@@ -91,6 +91,7 @@ export type WidgetPosition = 'hero' | 'tool' | 'hidden';
 export interface UserData {
   version: string;
   pin: string;
+  authEnabled?: boolean;
   callsign?: string; 
   theme: Theme;
   crtEnabled?: boolean; 

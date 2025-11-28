@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [widgetPosition, setWidgetPosition] = useState<WidgetPosition>('tool');
   const [greetingEnabled, setGreetingEnabled] = useState(false);
   const [greetingText, setGreetingText] = useState('WELCOME COMMANDER');
+  const [authEnabled, setAuthEnabled] = useState(true);
 
   const { pathname } = useLocation();
 
@@ -55,7 +56,7 @@ const App: React.FC = () => {
   const [shuffledQueue, setShuffledQueue] = useState<string[]>([]);
 
   // --- AUTO LOCK TIMER REF ---
-  const activityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const activityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // --- INIT & MIGRATION ---
   useEffect(() => {
@@ -69,6 +70,11 @@ const App: React.FC = () => {
     
     const cachedGreetingEnabled = localStorage.getItem('blue_greeting_enabled');
     const cachedGreetingText = localStorage.getItem('blue_greeting_text');
+    
+    // Auth Enabled check (default true if missing)
+    const cachedAuthEnabled = localStorage.getItem('blue_auth_enabled');
+    const isAuthEnabled = cachedAuthEnabled !== 'false';
+    setAuthEnabled(isAuthEnabled);
 
     if (cachedPin) {
       setSessionPin(cachedPin);
@@ -80,7 +86,7 @@ const App: React.FC = () => {
       if (cachedGreetingEnabled) setGreetingEnabled(cachedGreetingEnabled === 'true');
       if (cachedGreetingText) setGreetingText(cachedGreetingText);
       
-      setBootStatus('locked');
+      setBootStatus(isAuthEnabled ? 'locked' : 'unlocked');
     }
 
     // 2. Audio Data Migration
@@ -120,18 +126,18 @@ const App: React.FC = () => {
 
   // --- AUTO LOCK LOGIC ---
   const resetActivityTimer = useCallback(() => {
-    if (bootStatus !== 'unlocked' || autoLockSeconds <= 0) return;
+    if (bootStatus !== 'unlocked' || autoLockSeconds <= 0 || !authEnabled) return;
 
     if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
 
     activityTimerRef.current = setTimeout(() => {
         setBootStatus('locked');
     }, autoLockSeconds * 1000);
-  }, [bootStatus, autoLockSeconds]);
+  }, [bootStatus, autoLockSeconds, authEnabled]);
 
   useEffect(() => {
       // Set up activity listeners
-      if (bootStatus === 'unlocked' && autoLockSeconds > 0) {
+      if (bootStatus === 'unlocked' && autoLockSeconds > 0 && authEnabled) {
           window.addEventListener('mousemove', resetActivityTimer);
           window.addEventListener('keydown', resetActivityTimer);
           window.addEventListener('click', resetActivityTimer);
@@ -146,7 +152,7 @@ const App: React.FC = () => {
           window.removeEventListener('click', resetActivityTimer);
           if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
       };
-  }, [bootStatus, autoLockSeconds, resetActivityTimer]);
+  }, [bootStatus, autoLockSeconds, authEnabled, resetActivityTimer]);
 
 
   // --- AUDIO LOGIC ---
@@ -311,7 +317,8 @@ const App: React.FC = () => {
       loadedWidgetPos?: WidgetPosition,
       quickLinks?: QuickLink[],
       loadedGreetingEnabled?: boolean,
-      loadedGreetingText?: string
+      loadedGreetingText?: string,
+      loadedAuthEnabled?: boolean
   ) => {
     setSessionPin(pin);
     if (loadedTheme) setTheme(loadedTheme);
@@ -323,9 +330,13 @@ const App: React.FC = () => {
     if (loadedGreetingEnabled !== undefined) setGreetingEnabled(loadedGreetingEnabled);
     if (loadedGreetingText) setGreetingText(loadedGreetingText);
     
+    const shouldAuth = loadedAuthEnabled !== undefined ? loadedAuthEnabled : true;
+    setAuthEnabled(shouldAuth);
+    
     if (quickLinks && quickLinks.length > 0) localStorage.setItem('blue_quick_links', JSON.stringify(quickLinks));
     
-    setBootStatus(requiresAuth ? 'locked' : 'unlocked');
+    // If auth is required AND enabled, lock it. Otherwise unlock.
+    setBootStatus((requiresAuth && shouldAuth) ? 'locked' : 'unlocked');
   };
 
   const handleSystemReset = () => {
@@ -365,6 +376,13 @@ const App: React.FC = () => {
   const updateGreetingText = (text: string) => {
       setGreetingText(text);
       localStorage.setItem('blue_greeting_text', text);
+  };
+
+  const updateAuthEnabled = (enabled: boolean) => {
+      setAuthEnabled(enabled);
+      localStorage.setItem('blue_auth_enabled', String(enabled));
+      // If disabled, unlock immediately if locked? 
+      // If we are in Config, we are already unlocked.
   };
 
   if (bootStatus === 'booting') {
@@ -433,6 +451,8 @@ const App: React.FC = () => {
           onGreetingEnabledChange={updateGreetingEnabled}
           greetingText={greetingText}
           onGreetingTextChange={updateGreetingText}
+          authEnabled={authEnabled}
+          onAuthEnabledChange={updateAuthEnabled}
           musicPlaylists={playlists} 
           audioState={{ volume, loopMode, shuffle }} 
       />;

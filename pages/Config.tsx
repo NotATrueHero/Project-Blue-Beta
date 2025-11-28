@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare } from 'lucide-react';
+import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert } from 'lucide-react';
 import { UserData, Theme, MusicPlaylist, LoopMode, WidgetPosition } from '../types';
 
 interface ConfigProps {
@@ -20,6 +20,8 @@ interface ConfigProps {
     onGreetingEnabledChange: (enabled: boolean) => void;
     greetingText: string;
     onGreetingTextChange: (text: string) => void;
+    authEnabled: boolean;
+    onAuthEnabledChange: (enabled: boolean) => void;
     musicPlaylists: MusicPlaylist[];
     audioState: {
         volume: number;
@@ -36,6 +38,7 @@ export const Config: React.FC<ConfigProps> = ({
     widgetPosition, onWidgetPositionChange,
     greetingEnabled, onGreetingEnabledChange,
     greetingText, onGreetingTextChange,
+    authEnabled, onAuthEnabledChange,
     musicPlaylists, audioState 
 }) => {
   const [currentPin, setCurrentPin] = useState('');
@@ -75,6 +78,7 @@ export const Config: React.FC<ConfigProps> = ({
     const data: UserData = {
         version: '2.7',
         pin,
+        authEnabled,
         theme,
         callsign,
         crtEnabled,
@@ -293,8 +297,27 @@ export const Config: React.FC<ConfigProps> = ({
             </div>
             
             <div className="space-y-8">
-                {/* Auto Lock */}
-                <div>
+                {/* Auth Toggle */}
+                <div className="flex items-center justify-between pb-6 border-b border-white/20">
+                    <div>
+                        <div className="font-bold uppercase tracking-wider mb-1 flex items-center gap-2">
+                             {authEnabled ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
+                             <span>Password System</span>
+                        </div>
+                        <div className="text-xs opacity-60">
+                             {authEnabled ? 'System locked on boot & inactivity.' : 'Authentication Disabled. Open Access.'}
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => onAuthEnabledChange(!authEnabled)}
+                        className={`border border-white py-1 px-3 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all ${authEnabled ? 'bg-white text-black' : 'text-white'}`}
+                    >
+                        {authEnabled ? 'ENABLED' : 'DISABLED'}
+                    </button>
+                </div>
+
+                {/* Auto Lock (Disabled if Auth is off) */}
+                <div className={!authEnabled ? 'opacity-30 pointer-events-none' : ''}>
                      <div className="flex items-center gap-2 mb-4 font-bold uppercase tracking-wider">
                          <Clock size={16} /> Auto-Lock Timer
                      </div>
@@ -311,8 +334,8 @@ export const Config: React.FC<ConfigProps> = ({
                      </div>
                 </div>
 
-                {/* PIN Change */}
-                <div>
+                {/* PIN Change (Disabled if Auth is off) */}
+                <div className={!authEnabled ? 'opacity-30 pointer-events-none' : ''}>
                     <div className="flex items-center gap-3 text-sm opacity-70 mb-4">
                         <ShieldCheck size={16} />
                         <span>Current PIN: <span className="font-mono bg-white/20 px-2 py-0.5 rounded ml-2">{currentPin}</span></span>

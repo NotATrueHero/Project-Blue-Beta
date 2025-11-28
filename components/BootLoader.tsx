@@ -16,7 +16,8 @@ interface BootLoaderProps {
       widgetPosition?: WidgetPosition,
       quickLinks?: QuickLink[],
       greetingEnabled?: boolean,
-      greetingText?: string
+      greetingText?: string,
+      authEnabled?: boolean
   ) => void;
 }
 
@@ -71,10 +72,12 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         }
 
         const quickLinks: QuickLink[] = data.quickLinks || [];
+        const authEnabled = data.authEnabled !== undefined ? data.authEnabled : true;
 
         // Seed LocalStorage
         localStorage.setItem('blue_pin', data.pin);
         if (data.callsign) localStorage.setItem('blue_callsign', data.callsign);
+        localStorage.setItem('blue_auth_enabled', String(authEnabled));
         
         localStorage.setItem('blue_notes', JSON.stringify(data.notes));
         localStorage.setItem('blue_note_folders', JSON.stringify(data.noteFolders || []));
@@ -122,7 +125,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
                 data.widgetPosition,
                 quickLinks,
                 data.greetingEnabled,
-                data.greetingText
+                data.greetingText,
+                authEnabled
             );
         }, 800);
 
@@ -141,12 +145,13 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         // Set Default PIN
         const defaultPin = "1969";
         localStorage.setItem('blue_pin', defaultPin);
+        localStorage.setItem('blue_auth_enabled', 'true');
         
         // Default Widget Position
         localStorage.setItem('blue_widget_pos', 'tool');
     
         // Boot without auth
-        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined);
+        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined, true);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
