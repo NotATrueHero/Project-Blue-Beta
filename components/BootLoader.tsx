@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Power, AlertTriangle } from 'lucide-react';
-import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent } from '../types';
+import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent, FluidBackground } from '../types';
 
 interface BootLoaderProps {
   onLoadComplete: (
@@ -20,7 +20,8 @@ interface BootLoaderProps {
       greetingText?: string,
       authEnabled?: boolean,
       linkOpenMode?: LinkOpenMode,
-      fluidAccent?: FluidAccent
+      fluidAccent?: FluidAccent,
+      fluidBackground?: FluidBackground
   ) => void;
 }
 
@@ -97,6 +98,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
 
         localStorage.setItem('blue_theme', data.theme || 'standard');
         if (data.fluidAccent) localStorage.setItem('blue_fluid_accent', data.fluidAccent);
+        if (data.fluidBackground) localStorage.setItem('blue_fluid_bg', data.fluidBackground);
+        
         if (data.crtEnabled !== undefined) localStorage.setItem('blue_crt', String(data.crtEnabled));
         if (data.autoLockSeconds !== undefined) localStorage.setItem('blue_autolock', String(data.autoLockSeconds));
         if (data.widgetPosition) localStorage.setItem('blue_widget_pos', data.widgetPosition);
@@ -134,7 +137,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
                 data.greetingText,
                 authEnabled,
                 linkOpenMode,
-                data.fluidAccent
+                data.fluidAccent,
+                data.fluidBackground
             );
         }, 800);
 
@@ -161,7 +165,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         localStorage.setItem('blue_theme', 'standard');
     
         // Boot without auth
-        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined, true, 'new_tab', 'teal');
+        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined, true, 'new_tab', 'teal', 'deep');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

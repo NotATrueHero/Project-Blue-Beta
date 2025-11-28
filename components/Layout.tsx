@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, Pause, LayoutGrid, List, Wifi, Zap, Signal, Menu } from 'lucide-react';
-import { Theme, ViewMode, FluidAccent } from '../types';
+import { Theme, ViewMode, FluidAccent, FluidBackground } from '../types';
 
 // Custom Router Implementation
 export const useLocation = () => {
@@ -35,6 +35,7 @@ interface LayoutProps {
   children: React.ReactNode;
   theme: Theme;
   fluidAccent?: FluidAccent;
+  fluidBackground?: FluidBackground;
   callsign?: string;
   crtEnabled?: boolean;
   isPlaying: boolean;
@@ -90,6 +91,7 @@ export const Layout: React.FC<LayoutProps> = ({
   children, 
   theme, 
   fluidAccent,
+  fluidBackground,
   callsign,
   crtEnabled,
   isPlaying, 
@@ -107,16 +109,17 @@ export const Layout: React.FC<LayoutProps> = ({
 
   // Theme colors
   const getBgClass = () => {
-      if (theme === 'vanta') return 'bg-[#0047FF]'; // Restore Blue Base
+      if (theme === 'vanta') return 'bg-[#0047FF]';
       if (theme === 'stealth') return 'bg-[#020617]';
       if (theme === 'fluid') {
-          // Dynamic gradient based on accent
+          if (fluidBackground === 'vivid') return 'bg-[#0047FF]'; // Forced Blue
+          // Minimalist deep colors
           switch(fluidAccent) {
-              case 'violet': return 'bg-gradient-to-br from-slate-950 via-[#1e0f2e] to-slate-900';
-              case 'rose': return 'bg-gradient-to-br from-slate-950 via-[#2e0f15] to-slate-900';
-              case 'amber': return 'bg-gradient-to-br from-slate-950 via-[#2e1d0f] to-slate-900';
-              case 'blue': return 'bg-gradient-to-br from-slate-950 via-[#0f1a2e] to-slate-900';
-              default: return 'bg-gradient-to-br from-slate-950 via-[#0f282e] to-slate-900'; // Default teal
+              case 'violet': return 'bg-[#05010a]';
+              case 'rose': return 'bg-[#0a0103]';
+              case 'amber': return 'bg-[#0a0501]';
+              case 'blue': return 'bg-[#01050a]';
+              default: return 'bg-[#010a0a]'; // Teal default
           }
       }
       return 'bg-[#0047FF]';
@@ -127,7 +130,7 @@ export const Layout: React.FC<LayoutProps> = ({
           case 'vanta': return 'bg-white/10 border border-white/20 backdrop-blur-sm';
           case 'stealth': return 'bg-white/5';
           case 'fluid': 
-                return 'bg-white/5 backdrop-blur-md border border-white/10';
+                return 'bg-white/5 border border-white/10'; // Removed heavy blur
           default: return 'bg-blue-base/20';
       }
   };
@@ -157,7 +160,7 @@ export const Layout: React.FC<LayoutProps> = ({
             {theme === 'fluid' && isHome && (
                 <button 
                     onClick={onToggleSidebar}
-                    className="p-2 hover:bg-white/10 rounded-full transition-colors md:hidden pointer-events-auto bg-black/20 backdrop-blur-md border border-white/10"
+                    className="p-2 hover:bg-white/10 transition-colors md:hidden pointer-events-auto border border-white/10"
                 >
                     <Menu size={20} />
                 </button>

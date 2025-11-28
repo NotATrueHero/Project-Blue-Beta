@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useTelemetry } from '../components/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, ExternalLink, X, Terminal, ArrowRight, Zap, Wifi, Globe, LayoutGrid, Server, Cpu, Disc, MousePointer2, ArrowLeft, Target, Navigation as NavIcon, Home } from 'lucide-react';
-import { ViewMode, ToolItem, WidgetPosition, QuickLink, LinkOpenMode, Theme, FluidAccent } from '../types';
+import { ViewMode, ToolItem, WidgetPosition, QuickLink, LinkOpenMode, Theme, FluidAccent, FluidBackground } from '../types';
 
 // SPECIFIC ORDER REQUESTED
 const tools: ToolItem[] = [
@@ -72,6 +72,7 @@ interface DashboardProps {
     linkOpenMode: LinkOpenMode;
     theme?: Theme;
     fluidAccent?: FluidAccent;
+    fluidBackground?: FluidBackground;
     sidebarOpen?: boolean;
 }
 
@@ -413,7 +414,7 @@ const SystemWidget: React.FC<SystemWidgetProps> = ({ mode, linkOpenMode, toolSea
 };
 
 
-export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect, widgetPosition, greetingEnabled, greetingText, linkOpenMode, theme, fluidAccent = 'teal', sidebarOpen }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect, widgetPosition, greetingEnabled, greetingText, linkOpenMode, theme, fluidAccent = 'teal', fluidBackground = 'deep', sidebarOpen }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const [toolSearchQuery, setToolSearchQuery] = useState('');
@@ -534,97 +535,51 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
       setCurrentSectorIndex(prev => (prev - 1 + SECTORS.length) % SECTORS.length);
   };
 
-  // --- DYNAMIC FLUID STYLES ---
+  // --- DYNAMIC FLUID STYLES (MINIMALIST VERSION) ---
   const getFluidStyles = () => {
+      // Minimalist mapping: Use colors for small accents/borders only. 
+      // Backgrounds should be largely transparent or black.
       const map: Record<FluidAccent, {
-          titleGradient: string;
-          accentText: string;
-          accentTextHover: string;
-          accentBg: string;
-          borderFocus: string;
-          blobColor: string;
-          blobColor2: string;
-          navActiveBg: string;
-          navActiveText: string;
-          navActiveBorder: string;
+          borderColor: string;
+          textColor: string;
           iconColor: string;
-          iconColorHover: string;
-          iconColorActive: string;
+          hoverBorder: string;
+          indicatorColor: string;
       }> = {
           teal: {
-              titleGradient: 'from-teal-200 to-white',
-              accentText: 'text-teal-200',
-              accentTextHover: 'group-hover:text-teal-200',
-              accentBg: 'group-hover:bg-teal-500',
-              borderFocus: 'focus:border-teal-500/50',
-              blobColor: 'bg-teal-500/10',
-              blobColor2: 'bg-blue-600/10',
-              navActiveBg: 'bg-teal-500/20',
-              navActiveText: 'text-teal-200',
-              navActiveBorder: 'border-teal-500/30',
-              iconColor: 'text-teal-400',
-              iconColorHover: 'group-focus-within:text-teal-400',
-              iconColorActive: 'text-teal-200'
+              borderColor: 'border-teal-900/50',
+              textColor: 'text-teal-100',
+              iconColor: 'text-teal-500',
+              hoverBorder: 'group-hover:border-teal-500/50',
+              indicatorColor: 'bg-teal-500'
           },
           violet: {
-              titleGradient: 'from-violet-300 to-white',
-              accentText: 'text-violet-300',
-              accentTextHover: 'group-hover:text-violet-300',
-              accentBg: 'group-hover:bg-violet-600',
-              borderFocus: 'focus:border-violet-500/50',
-              blobColor: 'bg-violet-500/10',
-              blobColor2: 'bg-fuchsia-600/10',
-              navActiveBg: 'bg-violet-500/20',
-              navActiveText: 'text-violet-300',
-              navActiveBorder: 'border-violet-500/30',
-              iconColor: 'text-violet-400',
-              iconColorHover: 'group-focus-within:text-violet-400',
-              iconColorActive: 'text-violet-200'
+              borderColor: 'border-violet-900/50',
+              textColor: 'text-violet-100',
+              iconColor: 'text-violet-500',
+              hoverBorder: 'group-hover:border-violet-500/50',
+              indicatorColor: 'bg-violet-500'
           },
           rose: {
-              titleGradient: 'from-rose-300 to-white',
-              accentText: 'text-rose-300',
-              accentTextHover: 'group-hover:text-rose-300',
-              accentBg: 'group-hover:bg-rose-600',
-              borderFocus: 'focus:border-rose-500/50',
-              blobColor: 'bg-rose-500/10',
-              blobColor2: 'bg-orange-600/10',
-              navActiveBg: 'bg-rose-500/20',
-              navActiveText: 'text-rose-300',
-              navActiveBorder: 'border-rose-500/30',
-              iconColor: 'text-rose-400',
-              iconColorHover: 'group-focus-within:text-rose-400',
-              iconColorActive: 'text-rose-200'
+              borderColor: 'border-rose-900/50',
+              textColor: 'text-rose-100',
+              iconColor: 'text-rose-500',
+              hoverBorder: 'group-hover:border-rose-500/50',
+              indicatorColor: 'bg-rose-500'
           },
           amber: {
-              titleGradient: 'from-amber-200 to-white',
-              accentText: 'text-amber-200',
-              accentTextHover: 'group-hover:text-amber-200',
-              accentBg: 'group-hover:bg-amber-600',
-              borderFocus: 'focus:border-amber-500/50',
-              blobColor: 'bg-amber-500/10',
-              blobColor2: 'bg-yellow-600/10',
-              navActiveBg: 'bg-amber-500/20',
-              navActiveText: 'text-amber-200',
-              navActiveBorder: 'border-amber-500/30',
-              iconColor: 'text-amber-400',
-              iconColorHover: 'group-focus-within:text-amber-400',
-              iconColorActive: 'text-amber-200'
+              borderColor: 'border-amber-900/50',
+              textColor: 'text-amber-100',
+              iconColor: 'text-amber-500',
+              hoverBorder: 'group-hover:border-amber-500/50',
+              indicatorColor: 'bg-amber-500'
           },
           blue: {
-              titleGradient: 'from-blue-300 to-white',
-              accentText: 'text-blue-300',
-              accentTextHover: 'group-hover:text-blue-300',
-              accentBg: 'group-hover:bg-blue-600',
-              borderFocus: 'focus:border-blue-500/50',
-              blobColor: 'bg-blue-500/10',
-              blobColor2: 'bg-indigo-600/10',
-              navActiveBg: 'bg-blue-500/20',
-              navActiveText: 'text-blue-300',
-              navActiveBorder: 'border-blue-500/30',
-              iconColor: 'text-blue-400',
-              iconColorHover: 'group-focus-within:text-blue-400',
-              iconColorActive: 'text-blue-200'
+              borderColor: 'border-blue-900/50',
+              textColor: 'text-blue-100',
+              iconColor: 'text-blue-500',
+              hoverBorder: 'group-hover:border-blue-500/50',
+              indicatorColor: 'bg-blue-500'
           }
       };
       return map[fluidAccent];
@@ -845,101 +800,78 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
       );
   }
 
-  // --- FLUID THEME LAYOUT ---
+  // --- FLUID THEME LAYOUT (REFACTORED FOR MINIMALISM & VIVID MODE) ---
   if (theme === 'fluid') {
+      const isVivid = fluidBackground === 'vivid';
+      
       return (
-          <div className="w-full h-full flex bg-[url('https://www.transparenttextures.com/patterns/noise.png')] relative overflow-hidden">
+          <div className="w-full h-full flex relative overflow-hidden">
              
-             {/* LEFT SIDEBAR ("COMMAND DECK") */}
+             {/* LEFT SIDEBAR - FLAT MINIMALIST */}
              <aside className={`
-                fixed inset-y-0 left-0 z-50 w-80 bg-slate-900/90 backdrop-blur-xl border-r border-white/10 p-8 flex flex-col gap-6 transition-transform duration-300 ease-out
+                fixed inset-y-0 left-0 z-50 w-72 
+                ${isVivid ? 'bg-black/20 border-white/30 backdrop-blur-md' : 'bg-black/40 border-white/10 backdrop-blur-sm'} 
+                border-r p-6 flex flex-col gap-8 transition-transform duration-300 ease-out 
                 md:relative md:translate-x-0
                 ${sidebarOpen ? 'translate-x-0 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : '-translate-x-full'}
              `}>
                  {/* Header */}
-                 <div className="pt-8">
-                     <h1 className={`text-3xl font-bold tracking-tighter leading-none mb-1 text-transparent bg-clip-text bg-gradient-to-r ${s.titleGradient}`}>
+                 <div className="pt-6">
+                     <h1 className="text-2xl font-bold tracking-tighter leading-none mb-1">
                          {greetingEnabled ? greetingText : 'PROJECT BLUE'}
                      </h1>
-                     <div className={`h-1 w-12 rounded-full mt-2 ${s.iconColor.replace('text-', 'bg-')}`} />
+                     <div className={`h-[2px] w-8 mt-2 ${s.indicatorColor}`} />
                  </div>
 
                  {/* System Status Block */}
-                 <div className="bg-white/5 rounded-xl p-4 border border-white/5 space-y-3">
-                     <div className={`text-[10px] font-bold uppercase tracking-widest opacity-50 ${s.accentText}`}>System Telemetry</div>
-                     <div className="flex items-center justify-between">
+                 <div className="space-y-4">
+                     <div className="text-[9px] font-bold uppercase tracking-[0.2em] opacity-40">System Telemetry</div>
+                     <div className="flex items-center justify-between border-b border-white/5 pb-2">
                          <div className="flex items-center gap-2">
-                             <Wifi size={16} className={network === 'OFFLINE' ? 'text-red-400' : s.iconColor} />
-                             <span className="font-mono text-xs font-bold">{network}</span>
+                             <Wifi size={14} className={network === 'OFFLINE' ? 'text-red-400' : s.iconColor} />
+                             <span className="font-mono text-[10px] uppercase">{network}</span>
                          </div>
                          <div className="flex items-center gap-2">
-                             <Zap size={16} className={battery && battery.charging ? 'text-yellow-400' : s.iconColor} />
-                             <span className="font-mono text-xs font-bold">{battery ? `${battery.level}%` : '---'}</span>
+                             <Zap size={14} className={battery && battery.charging ? 'text-yellow-400' : s.iconColor} />
+                             <span className="font-mono text-[10px]">{battery ? `${battery.level}%` : '---'}</span>
                          </div>
                      </div>
                  </div>
                  
                  {/* CATEGORY NAVIGATION */}
-                 <div className="flex-1 flex flex-col min-h-0 py-4">
-                     <div className={`text-[10px] font-bold uppercase tracking-widest opacity-50 mb-4 px-2 ${s.accentText}`}>Sectors</div>
-                     <nav className="space-y-2 flex-1 overflow-y-auto hide-scrollbar">
-                         <button 
-                             onClick={() => setSelectedCategory('All')}
-                             className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center gap-3 group ${selectedCategory === 'All' ? `${s.navActiveBg} ${s.navActiveText} ${s.navActiveBorder}` : 'border-transparent text-white/60 hover:bg-white/5 hover:text-white'}`}
-                         >
-                             <LayoutGrid size={16} />
-                             <span className="text-xs font-bold uppercase tracking-wider">All Modules</span>
-                         </button>
-
-                         <button 
-                             onClick={() => setSelectedCategory('NETWORK')}
-                             className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center gap-3 group ${selectedCategory === 'NETWORK' ? `${s.navActiveBg} ${s.navActiveText} ${s.navActiveBorder}` : 'border-transparent text-white/60 hover:bg-white/5 hover:text-white'}`}
-                         >
-                             <Globe size={16} />
-                             <span className="text-xs font-bold uppercase tracking-wider">Network</span>
-                         </button>
-
-                         <button 
-                             onClick={() => setSelectedCategory('SYSTEM')}
-                             className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center gap-3 group ${selectedCategory === 'SYSTEM' ? `${s.navActiveBg} ${s.navActiveText} ${s.navActiveBorder}` : 'border-transparent text-white/60 hover:bg-white/5 hover:text-white'}`}
-                         >
-                             <Server size={16} />
-                             <span className="text-xs font-bold uppercase tracking-wider">System</span>
-                         </button>
-
-                         <button 
-                             onClick={() => setSelectedCategory('COMPUTE')}
-                             className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center gap-3 group ${selectedCategory === 'COMPUTE' ? `${s.navActiveBg} ${s.navActiveText} ${s.navActiveBorder}` : 'border-transparent text-white/60 hover:bg-white/5 hover:text-white'}`}
-                         >
-                             <Cpu size={16} />
-                             <span className="text-xs font-bold uppercase tracking-wider">Compute</span>
-                         </button>
-
-                         <button 
-                             onClick={() => setSelectedCategory('STUDIO')}
-                             className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center gap-3 group ${selectedCategory === 'STUDIO' ? `${s.navActiveBg} ${s.navActiveText} ${s.navActiveBorder}` : 'border-transparent text-white/60 hover:bg-white/5 hover:text-white'}`}
-                         >
-                             <Disc size={16} />
-                             <span className="text-xs font-bold uppercase tracking-wider">Studio</span>
-                         </button>
+                 <div className="flex-1 flex flex-col min-h-0">
+                     <div className="text-[9px] font-bold uppercase tracking-[0.2em] opacity-40 mb-3">Sectors</div>
+                     <nav className="space-y-1 flex-1 overflow-y-auto hide-scrollbar">
+                         {['All', ...SECTORS.slice(2)].map(cat => (
+                             <button 
+                                key={cat}
+                                onClick={() => setSelectedCategory(cat)}
+                                className={`w-full text-left px-3 py-2 flex items-center justify-between group transition-all text-xs font-bold uppercase tracking-wider
+                                    ${selectedCategory === cat ? `text-white bg-white/5 border-l-2 ${s.borderColor.replace('/50', '')}` : 'text-white/40 hover:text-white border-l-2 border-transparent'}
+                                `}
+                             >
+                                 <span>{cat === 'All' ? 'All Modules' : cat}</span>
+                                 {selectedCategory === cat && <div className={`w-1.5 h-1.5 rounded-full ${s.indicatorColor}`} />}
+                             </button>
+                         ))}
                      </nav>
                  </div>
 
                  {/* Quick Actions Footer */}
                  <div>
-                    <div className={`text-[10px] font-bold uppercase tracking-widest opacity-50 mb-3 px-2 ${s.accentText}`}>Quick Actions</div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="text-[9px] font-bold uppercase tracking-[0.2em] opacity-40 mb-3">Shortcuts</div>
+                    <div className="grid grid-cols-2 gap-3">
                         <button 
                              onClick={() => navigate('/tasks')}
-                             className="px-3 py-2 bg-white/5 hover:bg-white/10 rounded border border-white/5 text-[10px] font-bold uppercase text-white/70 hover:text-white transition-colors flex items-center justify-center gap-2"
+                             className={`px-3 py-2 border hover:border-white/50 text-[10px] font-bold uppercase hover:text-white transition-colors flex items-center justify-center gap-2 ${isVivid ? 'border-white/30 text-white/80' : 'border-white/10 text-white/60'}`}
                         >
-                            <Plus size={12} /> Task
+                            <Plus size={10} /> Task
                         </button>
                         <button 
                              onClick={() => navigate('/notes')}
-                             className="px-3 py-2 bg-white/5 hover:bg-white/10 rounded border border-white/5 text-[10px] font-bold uppercase text-white/70 hover:text-white transition-colors flex items-center justify-center gap-2"
+                             className={`px-3 py-2 border hover:border-white/50 text-[10px] font-bold uppercase hover:text-white transition-colors flex items-center justify-center gap-2 ${isVivid ? 'border-white/30 text-white/80' : 'border-white/10 text-white/60'}`}
                         >
-                            <Plus size={12} /> Note
+                            <Plus size={10} /> Note
                         </button>
                     </div>
                  </div>
@@ -947,47 +879,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
 
              {/* MAIN CONTENT AREA */}
              <main className="flex-1 overflow-y-auto relative h-full">
-                 {/* Decorative Background Blobs */}
-                 <div className={`absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full blur-[120px] pointer-events-none ${s.blobColor}`} />
-                 <div className={`absolute bottom-[-10%] left-[10%] w-[500px] h-[500px] rounded-full blur-[100px] pointer-events-none ${s.blobColor2}`} />
-
-                 <div className="relative z-10 p-6 md:p-12 max-w-7xl mx-auto flex flex-col gap-12 pt-20 md:pt-12">
+                 
+                 <div className="relative z-10 p-6 md:p-12 max-w-7xl mx-auto flex flex-col gap-10 pt-20 md:pt-12">
                      
-                     {/* FLUID HEADER: CLOCK & SEARCH */}
+                     {/* HEADER SECTION */}
                      <div className="flex flex-col gap-8">
-                         <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/10 pb-8">
-                             {/* Massive Clock */}
+                         <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/10 pb-6">
+                             {/* Clock */}
                              <div>
-                                 <div className="text-[clamp(60px,10vw,120px)] font-bold tracking-tighter leading-none text-white/90 font-sans">
+                                 <div className="text-[clamp(40px,8vw,100px)] font-light tracking-tighter leading-none text-white/90 font-sans">
                                      {time.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
                                  </div>
-                                 <div className={`text-xl md:text-2xl font-light uppercase tracking-widest mt-2 opacity-60 ${s.accentText}`}>
+                                 <div className={`text-sm md:text-base uppercase tracking-[0.3em] mt-2 opacity-50 ${s.textColor}`}>
                                      {time.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
                                  </div>
                              </div>
 
-                             {/* Main Search Inputs */}
-                             <div className="w-full md:w-[450px] flex flex-col gap-4">
-                                 {/* Web Search */}
+                             {/* Search Bar */}
+                             <div className="w-full md:w-[400px] flex flex-col gap-3">
                                  <form onSubmit={handleWebSearch} className="relative group">
-                                     <Search className={`absolute left-4 top-1/2 -translate-y-1/2 opacity-50 transition-colors ${s.iconColorHover}`} size={20} />
+                                     <Search className={`absolute left-3 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 transition-opacity ${s.iconColor}`} size={16} />
                                      <input 
                                          value={webSearchQuery}
                                          onChange={e => setWebSearchQuery(e.target.value)}
-                                         placeholder="SEARCH THE WEB..."
-                                         className={`w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder-white/20 outline-none focus:bg-white/10 transition-all font-medium ${s.borderFocus}`}
+                                         placeholder="NETWORK SEARCH"
+                                         className={`w-full bg-transparent border-b border-white/20 py-2 pl-10 pr-4 text-white text-lg placeholder-white/20 outline-none uppercase font-light tracking-wide focus:border-white transition-all`}
                                      />
                                  </form>
-                                 {/* Tool Filter */}
-                                 <div className="relative group">
-                                     <Terminal className={`absolute left-4 top-1/2 -translate-y-1/2 opacity-50 transition-colors ${s.iconColorHover}`} size={20} />
-                                     <input 
-                                         value={toolSearchQuery}
-                                         onChange={e => setToolSearchQuery(e.target.value)}
-                                         placeholder="FILTER SYSTEM MODULES..."
-                                         className={`w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder-white/20 outline-none focus:bg-white/10 transition-all font-medium ${s.borderFocus}`}
-                                     />
-                                 </div>
                              </div>
                          </div>
                      </div>
@@ -996,44 +914,48 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
                      <div>
                          <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-4">
-                                <h2 className="text-xl font-light tracking-wide text-white/80">
-                                    {selectedCategory} <span className="opacity-30 mx-2">//</span> <span className={`font-bold uppercase ${s.accentText}`}>Modules</span>
+                                <h2 className="text-xl font-light tracking-tight text-white/80">
+                                    <span className="font-bold">{selectedCategory}</span> <span className="opacity-30 mx-1">//</span> Modules
                                 </h2>
                             </div>
-                            <div className="text-xs font-mono opacity-40 bg-white/5 px-2 py-1 rounded">{filteredTools.length} ACTIVE</div>
+                            <div className="text-[10px] font-mono opacity-30 border border-white/10 px-2 py-1">{filteredTools.length} ACTIVE</div>
                          </div>
 
-                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
                              {filteredTools.map(tool => (
                                  <Link 
                                     key={tool.id} 
                                     to={tool.path}
-                                    className={`group relative overflow-hidden rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col`}
+                                    className={`
+                                        group relative overflow-hidden transition-all duration-300
+                                        ${isVivid 
+                                            ? 'border-2 border-white/40 bg-white/5 hover:border-white hover:bg-white/10' // Stronger borders for Solid Blue
+                                            : `border border-white/5 bg-white/[0.02] hover:bg-transparent ${s.hoverBorder}`
+                                        }
+                                    `}
                                  >
                                      <div className="p-6 h-full flex flex-col relative z-10">
                                          <div className="flex justify-between items-start mb-4">
-                                             <div className={`p-3 bg-white/5 rounded-xl shadow-inner transition-colors group-hover:text-white ${s.accentText} ${s.accentBg}`}>
-                                                 <ArrowRight size={20} className="-rotate-45 group-hover:rotate-0 transition-transform" />
+                                             <div className={`p-2 border transition-colors ${isVivid ? 'border-white/30 group-hover:border-white' : `border-white/10 group-hover:border-white/30 ${s.iconColor}`}`}>
+                                                 <ArrowRight size={16} className="-rotate-45 group-hover:rotate-0 transition-transform duration-300" />
                                              </div>
-                                             <span className="text-[10px] font-bold uppercase tracking-widest opacity-30 bg-black/20 px-2 py-1 rounded">{tool.category}</span>
+                                             <span className="text-[9px] font-bold uppercase tracking-widest opacity-30 border border-white/10 px-2 py-1">{tool.category}</span>
                                          </div>
                                          
-                                         <h3 className={`text-xl font-bold mb-2 transition-colors ${s.accentTextHover}`}>{tool.title}</h3>
-                                         <p className="text-sm text-white/50 leading-relaxed mb-8 line-clamp-2 group-hover:text-white/70 transition-colors">
+                                         <h3 className="text-lg font-bold mb-2 uppercase tracking-wide group-hover:text-white transition-colors">{tool.title}</h3>
+                                         <p className="text-xs text-white/40 leading-relaxed mb-6 line-clamp-2">
                                              {tool.description}
                                          </p>
                                          
-                                         <div className="mt-auto pt-4 border-t border-white/5 flex justify-between items-center text-xs font-mono opacity-50">
+                                         <div className="mt-auto pt-4 border-t border-white/5 flex justify-between items-center text-[10px] font-mono opacity-30 group-hover:opacity-60 transition-opacity">
                                              <span>ID: {tool.id.toUpperCase()}</span>
-                                             <span className={`group-hover:translate-x-1 transition-transform ${s.accentText}`}>LAUNCH &rarr;</span>
+                                             <span>LAUNCH</span>
                                          </div>
                                      </div>
-                                     {/* Hover Gradient - subtle white */}
-                                     <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                                  </Link>
                              ))}
                              {filteredTools.length === 0 && (
-                                 <div className="col-span-full py-20 text-center opacity-30 uppercase tracking-widest border-2 border-dashed border-white/10 rounded-2xl">
+                                 <div className="col-span-full py-20 text-center opacity-20 uppercase tracking-widest border border-dashed border-white/10">
                                      No modules found in {selectedCategory}.
                                  </div>
                              )}

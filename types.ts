@@ -71,6 +71,7 @@ export interface FileItem {
 
 export type Theme = 'standard' | 'stealth' | 'fluid' | 'vanta';
 export type FluidAccent = 'teal' | 'violet' | 'rose' | 'amber' | 'blue';
+export type FluidBackground = 'deep' | 'vivid';
 export type LinkOpenMode = 'new_tab' | 'current_tab';
 
 export interface Track {
@@ -98,6 +99,7 @@ export interface UserData {
   callsign?: string; 
   theme: Theme;
   fluidAccent?: FluidAccent;
+  fluidBackground?: FluidBackground;
   linkOpenMode?: LinkOpenMode;
   crtEnabled?: boolean; 
   autoLockSeconds?: number;

@@ -20,7 +20,7 @@ import { Weather } from './pages/Weather';
 import { News } from './pages/News';
 import { IDE } from './pages/IDE';
 import { Calculator } from './pages/Calculator';
-import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent } from './types';
+import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent, FluidBackground } from './types';
 
 const App: React.FC = () => {
   const [bootStatus, setBootStatus] = useState<'booting' | 'locked' | 'unlocked'>('booting');
@@ -29,6 +29,7 @@ const App: React.FC = () => {
   // --- SETTINGS STATE ---
   const [theme, setTheme] = useState<Theme>('standard');
   const [fluidAccent, setFluidAccent] = useState<FluidAccent>('teal');
+  const [fluidBackground, setFluidBackground] = useState<FluidBackground>('deep');
   const [linkOpenMode, setLinkOpenMode] = useState<LinkOpenMode>('new_tab');
   const [callsign, setCallsign] = useState<string>('');
   const [crtEnabled, setCrtEnabled] = useState<boolean>(false);
@@ -71,6 +72,7 @@ const App: React.FC = () => {
     const cachedPin = localStorage.getItem('blue_pin');
     const cachedTheme = localStorage.getItem('blue_theme') as Theme;
     const cachedFluidAccent = localStorage.getItem('blue_fluid_accent') as FluidAccent;
+    const cachedFluidBg = localStorage.getItem('blue_fluid_bg') as FluidBackground;
     const cachedLinkMode = localStorage.getItem('blue_link_mode') as LinkOpenMode;
     const cachedCallsign = localStorage.getItem('blue_callsign');
     const cachedCrt = localStorage.getItem('blue_crt');
@@ -89,6 +91,7 @@ const App: React.FC = () => {
       setSessionPin(cachedPin);
       if (cachedTheme) setTheme(cachedTheme);
       if (cachedFluidAccent) setFluidAccent(cachedFluidAccent);
+      if (cachedFluidBg) setFluidBackground(cachedFluidBg);
       if (cachedLinkMode) setLinkOpenMode(cachedLinkMode);
       if (cachedCallsign) setCallsign(cachedCallsign);
       if (cachedCrt) setCrtEnabled(cachedCrt === 'true');
@@ -319,11 +322,13 @@ const App: React.FC = () => {
       loadedGreetingText?: string,
       loadedAuthEnabled?: boolean,
       loadedLinkOpenMode?: LinkOpenMode,
-      loadedFluidAccent?: FluidAccent
+      loadedFluidAccent?: FluidAccent,
+      loadedFluidBackground?: FluidBackground
   ) => {
     setSessionPin(pin);
     if (loadedTheme) setTheme(loadedTheme);
     if (loadedFluidAccent) setFluidAccent(loadedFluidAccent);
+    if (loadedFluidBackground) setFluidBackground(loadedFluidBackground);
     if (loadedLinkOpenMode) setLinkOpenMode(loadedLinkOpenMode);
     if (loadedPlaylists) setPlaylists(loadedPlaylists);
     if (loadedCallsign) setCallsign(loadedCallsign);
@@ -353,6 +358,11 @@ const App: React.FC = () => {
   const updateFluidAccent = (accent: FluidAccent) => {
       setFluidAccent(accent);
       localStorage.setItem('blue_fluid_accent', accent);
+  };
+
+  const updateFluidBackground = (bg: FluidBackground) => {
+      setFluidBackground(bg);
+      localStorage.setItem('blue_fluid_bg', bg);
   };
 
   const updateLinkOpenMode = (mode: LinkOpenMode) => {
@@ -455,6 +465,8 @@ const App: React.FC = () => {
           onThemeChange={updateTheme}
           fluidAccent={fluidAccent}
           onFluidAccentChange={updateFluidAccent}
+          fluidBackground={fluidBackground}
+          onFluidBackgroundChange={updateFluidBackground}
           linkOpenMode={linkOpenMode}
           onLinkOpenModeChange={updateLinkOpenMode}
           callsign={callsign}
@@ -485,6 +497,7 @@ const App: React.FC = () => {
         linkOpenMode={linkOpenMode}
         theme={theme}
         fluidAccent={fluidAccent}
+        fluidBackground={fluidBackground}
         sidebarOpen={sidebarOpen}
       />
   );
@@ -493,6 +506,7 @@ const App: React.FC = () => {
     <Layout 
         theme={theme} 
         fluidAccent={fluidAccent}
+        fluidBackground={fluidBackground}
         callsign={callsign} 
         crtEnabled={crtEnabled}
         isPlaying={isPlaying} 

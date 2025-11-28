@@ -2,14 +2,16 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert, Info, Droplets, Palette, Box } from 'lucide-react';
-import { UserData, Theme, MusicPlaylist, LoopMode, WidgetPosition, LinkOpenMode, FluidAccent } from '../types';
+import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert, Info, Droplets, Palette, Box, Grid } from 'lucide-react';
+import { UserData, Theme, MusicPlaylist, LoopMode, WidgetPosition, LinkOpenMode, FluidAccent, FluidBackground } from '../types';
 
 interface ConfigProps {
     currentTheme: Theme;
     onThemeChange: (t: Theme) => void;
     fluidAccent: FluidAccent;
     onFluidAccentChange: (a: FluidAccent) => void;
+    fluidBackground?: FluidBackground;
+    onFluidBackgroundChange?: (b: FluidBackground) => void;
     linkOpenMode: LinkOpenMode;
     onLinkOpenModeChange: (m: LinkOpenMode) => void;
     callsign: string;
@@ -37,6 +39,7 @@ interface ConfigProps {
 export const Config: React.FC<ConfigProps> = ({ 
     currentTheme, onThemeChange,
     fluidAccent, onFluidAccentChange,
+    fluidBackground = 'deep', onFluidBackgroundChange,
     linkOpenMode, onLinkOpenModeChange,
     callsign, onCallsignChange,
     crtEnabled, onCrtChange,
@@ -77,6 +80,7 @@ export const Config: React.FC<ConfigProps> = ({
     const pin = localStorage.getItem('blue_pin') || '1969';
     const theme = (localStorage.getItem('blue_theme') as Theme) || 'standard';
     const accent = (localStorage.getItem('blue_fluid_accent') as FluidAccent) || 'teal';
+    const bg = (localStorage.getItem('blue_fluid_bg') as FluidBackground) || 'deep';
     const widgetPos = (localStorage.getItem('blue_widget_pos') as WidgetPosition) || 'tool';
     const storedApiKey = localStorage.getItem('blue_api_key') || undefined;
     const bookmarkCategories = JSON.parse(localStorage.getItem('blue_uplink_categories') || '[]');
@@ -88,6 +92,7 @@ export const Config: React.FC<ConfigProps> = ({
         authEnabled,
         theme,
         fluidAccent: accent,
+        fluidBackground: bg,
         linkOpenMode,
         callsign,
         crtEnabled,
@@ -254,33 +259,57 @@ export const Config: React.FC<ConfigProps> = ({
                     <div className="text-xs opacity-60 mt-2">
                         {currentTheme === 'standard' && 'High-contrast tactical blue.'}
                         {currentTheme === 'stealth' && 'Low-light tactical slate.'}
-                        {currentTheme === 'fluid' && 'Modern studio aesthetic. Teal/Cyan gradient.'}
+                        {currentTheme === 'fluid' && 'Modern studio aesthetic. Customizable.'}
                         {currentTheme === 'vanta' && 'Ultra-minimal deep black. List interface.'}
                     </div>
                 </div>
 
-                {/* FLUID ACCENT PICKER - Only visible if Fluid is active */}
+                {/* FLUID SETTINGS - Only visible if Fluid is active */}
                 {currentTheme === 'fluid' && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
-                        <div className="font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
-                             <Palette size={16} /> Fluid Accent
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-4 border-l-2 border-white/20 pl-4 py-2">
+                        {/* Background Toggle */}
+                        <div>
+                            <div className="font-bold uppercase tracking-wider mb-2 flex items-center gap-2 text-xs">
+                                <Grid size={12} /> Background Intensity
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button 
+                                    onClick={() => onFluidBackgroundChange && onFluidBackgroundChange('deep')}
+                                    className={`border border-white py-1 text-[10px] font-bold uppercase hover:bg-white hover:text-black transition-all ${fluidBackground === 'deep' ? 'bg-white text-black' : 'text-white'}`}
+                                >
+                                    Deep (Dark)
+                                </button>
+                                <button 
+                                    onClick={() => onFluidBackgroundChange && onFluidBackgroundChange('vivid')}
+                                    className={`border border-white py-1 text-[10px] font-bold uppercase hover:bg-white hover:text-black transition-all ${fluidBackground === 'vivid' ? 'bg-white text-black' : 'text-white'}`}
+                                >
+                                    Vivid (Blue)
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex gap-3">
-                            {(['teal', 'violet', 'rose', 'amber', 'blue'] as FluidAccent[]).map(color => (
-                                <button
-                                    key={color}
-                                    onClick={() => onFluidAccentChange(color)}
-                                    className={`w-8 h-8 rounded-full border-2 transition-transform ${fluidAccent === color ? 'border-white scale-110 shadow-[0_0_10px_white]' : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105'}`}
-                                    style={{ 
-                                        backgroundColor: color === 'teal' ? '#14b8a6' : 
-                                                         color === 'violet' ? '#8b5cf6' : 
-                                                         color === 'rose' ? '#f43f5e' : 
-                                                         color === 'amber' ? '#f59e0b' : 
-                                                         '#3b82f6' 
-                                    }}
-                                    title={color.toUpperCase()}
-                                />
-                            ))}
+
+                        {/* Accent Picker */}
+                        <div>
+                            <div className="font-bold uppercase tracking-wider mb-2 flex items-center gap-2 text-xs">
+                                <Palette size={12} /> Fluid Accent
+                            </div>
+                            <div className="flex gap-3">
+                                {(['teal', 'violet', 'rose', 'amber', 'blue'] as FluidAccent[]).map(color => (
+                                    <button
+                                        key={color}
+                                        onClick={() => onFluidAccentChange(color)}
+                                        className={`w-6 h-6 rounded-full border-2 transition-transform ${fluidAccent === color ? 'border-white scale-110 shadow-[0_0_10px_white]' : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105'}`}
+                                        style={{ 
+                                            backgroundColor: color === 'teal' ? '#14b8a6' : 
+                                                            color === 'violet' ? '#8b5cf6' : 
+                                                            color === 'rose' ? '#f43f5e' : 
+                                                            color === 'amber' ? '#f59e0b' : 
+                                                            '#3b82f6' 
+                                        }}
+                                        title={color.toUpperCase()}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </motion.div>
                 )}
