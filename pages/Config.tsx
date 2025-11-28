@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert, SquareArrowOutUpRight, Link } from 'lucide-react';
+import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert } from 'lucide-react';
 import { UserData, Theme, MusicPlaylist, LoopMode, WidgetPosition, LinkOpenMode } from '../types';
 
 interface ConfigProps {
@@ -237,7 +237,7 @@ export const Config: React.FC<ConfigProps> = ({
                 <div className="flex items-center justify-between">
                     <div>
                         <div className="font-bold uppercase tracking-wider mb-1 flex items-center gap-2">
-                             <SquareArrowOutUpRight size={16} /> Link Protocol
+                             <ExternalLink size={16} /> Link Protocol
                         </div>
                         <div className="text-xs opacity-60">Open external links in New Tab or Current Tab</div>
                     </div>
