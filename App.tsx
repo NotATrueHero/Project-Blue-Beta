@@ -20,7 +20,7 @@ import { Weather } from './pages/Weather';
 import { News } from './pages/News';
 import { IDE } from './pages/IDE';
 import { Calculator } from './pages/Calculator';
-import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink, LinkOpenMode } from './types';
+import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent } from './types';
 
 const App: React.FC = () => {
   const [bootStatus, setBootStatus] = useState<'booting' | 'locked' | 'unlocked'>('booting');
@@ -28,6 +28,7 @@ const App: React.FC = () => {
   
   // --- SETTINGS STATE ---
   const [theme, setTheme] = useState<Theme>('standard');
+  const [fluidAccent, setFluidAccent] = useState<FluidAccent>('teal');
   const [linkOpenMode, setLinkOpenMode] = useState<LinkOpenMode>('new_tab');
   const [callsign, setCallsign] = useState<string>('');
   const [crtEnabled, setCrtEnabled] = useState<boolean>(false);
@@ -36,6 +37,9 @@ const App: React.FC = () => {
   const [greetingEnabled, setGreetingEnabled] = useState(false);
   const [greetingText, setGreetingText] = useState('WELCOME COMMANDER');
   const [authEnabled, setAuthEnabled] = useState(true);
+
+  // --- UI STATE ---
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { pathname } = useLocation();
 
@@ -47,7 +51,6 @@ const App: React.FC = () => {
   const [showViewToggle, setShowViewToggle] = useState(false);
 
   // --- AUDIO ENGINE 2.0 STATE ---
-  // Fix: Initialize Audio lazily via state to ensure single instance and avoid render side-effects
   const [audioElement] = useState(() => new Audio());
   const [playlists, setPlaylists] = useState<MusicPlaylist[]>([]);
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
@@ -67,6 +70,7 @@ const App: React.FC = () => {
     // 1. Session & Auth
     const cachedPin = localStorage.getItem('blue_pin');
     const cachedTheme = localStorage.getItem('blue_theme') as Theme;
+    const cachedFluidAccent = localStorage.getItem('blue_fluid_accent') as FluidAccent;
     const cachedLinkMode = localStorage.getItem('blue_link_mode') as LinkOpenMode;
     const cachedCallsign = localStorage.getItem('blue_callsign');
     const cachedCrt = localStorage.getItem('blue_crt');
@@ -84,6 +88,7 @@ const App: React.FC = () => {
     if (cachedPin) {
       setSessionPin(cachedPin);
       if (cachedTheme) setTheme(cachedTheme);
+      if (cachedFluidAccent) setFluidAccent(cachedFluidAccent);
       if (cachedLinkMode) setLinkOpenMode(cachedLinkMode);
       if (cachedCallsign) setCallsign(cachedCallsign);
       if (cachedCrt) setCrtEnabled(cachedCrt === 'true');
@@ -102,7 +107,6 @@ const App: React.FC = () => {
     if (cachedPlaylists) {
         setPlaylists(JSON.parse(cachedPlaylists));
     } else if (legacyPlaylist) {
-        // Migration: Convert old single playlist to new structure
         const tracks: Track[] = JSON.parse(legacyPlaylist);
         const newList: MusicPlaylist = {
             id: 'default-migrated',
@@ -111,7 +115,6 @@ const App: React.FC = () => {
         };
         setPlaylists([newList]);
         localStorage.setItem('blue_music_playlists', JSON.stringify([newList]));
-        // Clean up legacy
         localStorage.removeItem('blue_playlist');
     }
 
@@ -142,12 +145,11 @@ const App: React.FC = () => {
   }, [bootStatus, autoLockSeconds, authEnabled]);
 
   useEffect(() => {
-      // Set up activity listeners
       if (bootStatus === 'unlocked' && autoLockSeconds > 0 && authEnabled) {
           window.addEventListener('mousemove', resetActivityTimer);
           window.addEventListener('keydown', resetActivityTimer);
           window.addEventListener('click', resetActivityTimer);
-          resetActivityTimer(); // start timer
+          resetActivityTimer();
       } else {
           if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
       }
@@ -165,12 +167,9 @@ const App: React.FC = () => {
   const activePlaylist = playlists.find(p => p.id === activePlaylistId);
   const currentTrack = activePlaylist?.tracks.find(t => t.id === currentTrackId);
 
-  // Manage Shuffle Queue
   useEffect(() => {
       if (shuffle && activePlaylist) {
-          // Generate a shuffled order of IDs
           const ids = activePlaylist.tracks.map(t => t.id);
-          // Fisher-Yates Shuffle
           for (let i = ids.length - 1; i > 0; i--) {
               const j = Math.floor(Math.random() * (i + 1));
               [ids[i], ids[j]] = [ids[j], ids[i]];
@@ -181,8 +180,6 @@ const App: React.FC = () => {
       }
   }, [shuffle, activePlaylistId, activePlaylist?.tracks.length]);
 
-  // Audio Event Listeners
-  // Sync Audio Element
   useEffect(() => {
       audioElement.volume = volume;
   }, [volume, audioElement]);
@@ -207,21 +204,18 @@ const App: React.FC = () => {
       }
   }, [currentTrack, isPlaying, audioElement]);
 
-  // Player Controls
   const playNext = useCallback(() => {
       if (!activePlaylist || activePlaylist.tracks.length === 0) return;
       
       let nextTrackId: string | undefined;
 
       if (shuffle && shuffledQueue.length > 0) {
-          // Use Shuffled Queue
           const currentQueueIndex = shuffledQueue.indexOf(currentTrackId || '');
           let nextIndex = currentQueueIndex + 1;
           
           if (nextIndex >= shuffledQueue.length) {
-              // End of shuffled queue
               if (loopMode === 'all') {
-                  nextIndex = 0; // Restart shuffle queue
+                  nextIndex = 0;
               } else {
                   setIsPlaying(false);
                   return;
@@ -230,14 +224,13 @@ const App: React.FC = () => {
           nextTrackId = shuffledQueue[nextIndex];
 
       } else {
-          // Normal Sequential
           const currentIndex = activePlaylist.tracks.findIndex(t => t.id === currentTrackId);
           let nextIndex = currentIndex + 1;
           if (nextIndex >= activePlaylist.tracks.length) {
               if (loopMode === 'all') nextIndex = 0;
               else {
                   setIsPlaying(false);
-                  return; // Stop at end
+                  return;
               }
           }
           nextTrackId = activePlaylist.tracks[nextIndex].id;
@@ -258,7 +251,6 @@ const App: React.FC = () => {
           const currentQueueIndex = shuffledQueue.indexOf(currentTrackId || '');
           let prevIndex = currentQueueIndex - 1;
           if (prevIndex < 0) {
-              // Wrap around in shuffle mode to last song in shuffled queue
               prevIndex = shuffledQueue.length - 1; 
           }
           prevTrackId = shuffledQueue[prevIndex];
@@ -289,7 +281,7 @@ const App: React.FC = () => {
     return () => audioElement.removeEventListener('ended', handleEnded);
   }, [playNext, loopMode, audioElement]); 
 
-  // --- STATE SETTERS (With Persistence) ---
+  // --- STATE SETTERS ---
   const updatePlaylists = (newPlaylists: MusicPlaylist[]) => {
       setPlaylists(newPlaylists);
       localStorage.setItem('blue_music_playlists', JSON.stringify(newPlaylists));
@@ -326,10 +318,12 @@ const App: React.FC = () => {
       loadedGreetingEnabled?: boolean,
       loadedGreetingText?: string,
       loadedAuthEnabled?: boolean,
-      loadedLinkOpenMode?: LinkOpenMode
+      loadedLinkOpenMode?: LinkOpenMode,
+      loadedFluidAccent?: FluidAccent
   ) => {
     setSessionPin(pin);
     if (loadedTheme) setTheme(loadedTheme);
+    if (loadedFluidAccent) setFluidAccent(loadedFluidAccent);
     if (loadedLinkOpenMode) setLinkOpenMode(loadedLinkOpenMode);
     if (loadedPlaylists) setPlaylists(loadedPlaylists);
     if (loadedCallsign) setCallsign(loadedCallsign);
@@ -344,7 +338,6 @@ const App: React.FC = () => {
     
     if (quickLinks && quickLinks.length > 0) localStorage.setItem('blue_quick_links', JSON.stringify(quickLinks));
     
-    // If auth is required AND enabled, lock it. Otherwise unlock.
     setBootStatus((requiresAuth && shouldAuth) ? 'locked' : 'unlocked');
   };
 
@@ -355,6 +348,11 @@ const App: React.FC = () => {
   const updateTheme = (newTheme: Theme) => {
       setTheme(newTheme);
       localStorage.setItem('blue_theme', newTheme);
+  };
+
+  const updateFluidAccent = (accent: FluidAccent) => {
+      setFluidAccent(accent);
+      localStorage.setItem('blue_fluid_accent', accent);
   };
 
   const updateLinkOpenMode = (mode: LinkOpenMode) => {
@@ -455,6 +453,8 @@ const App: React.FC = () => {
       content = <Config 
           currentTheme={theme} 
           onThemeChange={updateTheme}
+          fluidAccent={fluidAccent}
+          onFluidAccentChange={updateFluidAccent}
           linkOpenMode={linkOpenMode}
           onLinkOpenModeChange={updateLinkOpenMode}
           callsign={callsign}
@@ -483,12 +483,16 @@ const App: React.FC = () => {
         greetingEnabled={greetingEnabled}
         greetingText={greetingText}
         linkOpenMode={linkOpenMode}
+        theme={theme}
+        fluidAccent={fluidAccent}
+        sidebarOpen={sidebarOpen}
       />
   );
 
   return (
     <Layout 
         theme={theme} 
+        fluidAccent={fluidAccent}
         callsign={callsign} 
         crtEnabled={crtEnabled}
         isPlaying={isPlaying} 
@@ -501,6 +505,7 @@ const App: React.FC = () => {
             localStorage.setItem('blue_view_mode', newMode);
         }}
         greetingEnabled={greetingEnabled}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
     >
       {content}
     </Layout>

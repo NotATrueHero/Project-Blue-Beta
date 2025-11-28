@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Power, AlertTriangle } from 'lucide-react';
-import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition, QuickLink, LinkOpenMode } from '../types';
+import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent } from '../types';
 
 interface BootLoaderProps {
   onLoadComplete: (
@@ -19,7 +19,8 @@ interface BootLoaderProps {
       greetingEnabled?: boolean,
       greetingText?: string,
       authEnabled?: boolean,
-      linkOpenMode?: LinkOpenMode
+      linkOpenMode?: LinkOpenMode,
+      fluidAccent?: FluidAccent
   ) => void;
 }
 
@@ -95,6 +96,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         localStorage.setItem('blue_file_folders', JSON.stringify(data.fileFolders || [])); 
 
         localStorage.setItem('blue_theme', data.theme || 'standard');
+        if (data.fluidAccent) localStorage.setItem('blue_fluid_accent', data.fluidAccent);
         if (data.crtEnabled !== undefined) localStorage.setItem('blue_crt', String(data.crtEnabled));
         if (data.autoLockSeconds !== undefined) localStorage.setItem('blue_autolock', String(data.autoLockSeconds));
         if (data.widgetPosition) localStorage.setItem('blue_widget_pos', data.widgetPosition);
@@ -131,7 +133,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
                 data.greetingEnabled,
                 data.greetingText,
                 authEnabled,
-                linkOpenMode
+                linkOpenMode,
+                data.fluidAccent
             );
         }, 800);
 
@@ -155,9 +158,10 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         // Default Widget Position
         localStorage.setItem('blue_widget_pos', 'tool');
         localStorage.setItem('blue_link_mode', 'new_tab');
+        localStorage.setItem('blue_theme', 'standard');
     
         // Boot without auth
-        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined, true, 'new_tab');
+        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined, true, 'new_tab', 'teal');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -243,7 +247,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         )}
 
         <div className="mt-12 text-center text-xs opacity-40 uppercase tracking-[0.2em]">
-            Project Blue Beta // v2.3.0
+            Project Blue Beta // v2.4.0
         </div>
 
       </motion.div>

@@ -2,8 +2,8 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Play, Pause, LayoutGrid, List, Wifi, Zap, Signal } from 'lucide-react';
-import { Theme, ViewMode } from '../types';
+import { ArrowLeft, Play, Pause, LayoutGrid, List, Wifi, Zap, Signal, Menu } from 'lucide-react';
+import { Theme, ViewMode, FluidAccent } from '../types';
 
 // Custom Router Implementation
 export const useLocation = () => {
@@ -34,6 +34,7 @@ export const Link: React.FC<{to: string; children: React.ReactNode; className?: 
 interface LayoutProps {
   children: React.ReactNode;
   theme: Theme;
+  fluidAccent?: FluidAccent;
   callsign?: string;
   crtEnabled?: boolean;
   isPlaying: boolean;
@@ -42,10 +43,11 @@ interface LayoutProps {
   viewMode?: ViewMode;
   onToggleView?: () => void;
   greetingEnabled?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 // Telemetry Hook
-const useTelemetry = () => {
+export const useTelemetry = () => {
     const [battery, setBattery] = useState<{level: number, charging: boolean} | null>(null);
     const [network, setNetwork] = useState<string>('ONLINE');
 
@@ -87,6 +89,7 @@ const useTelemetry = () => {
 export const Layout: React.FC<LayoutProps> = ({ 
   children, 
   theme, 
+  fluidAccent,
   callsign,
   crtEnabled,
   isPlaying, 
@@ -94,7 +97,8 @@ export const Layout: React.FC<LayoutProps> = ({
   showViewToggle,
   viewMode,
   onToggleView,
-  greetingEnabled
+  greetingEnabled,
+  onToggleSidebar
 }) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -102,8 +106,35 @@ export const Layout: React.FC<LayoutProps> = ({
   const { battery, network } = useTelemetry();
 
   // Theme colors
-  const bgClass = theme === 'stealth' ? 'bg-[#020617]' : 'bg-[#0047FF]';
-  const accentClass = theme === 'stealth' ? 'bg-white/5' : 'bg-blue-base/20';
+  const getBgClass = () => {
+      if (theme === 'stealth') return 'bg-[#020617]';
+      if (theme === 'fluid') {
+          // Dynamic gradient based on accent
+          switch(fluidAccent) {
+              case 'violet': return 'bg-gradient-to-br from-slate-950 via-[#1e0f2e] to-slate-900';
+              case 'rose': return 'bg-gradient-to-br from-slate-950 via-[#2e0f15] to-slate-900';
+              case 'amber': return 'bg-gradient-to-br from-slate-950 via-[#2e1d0f] to-slate-900';
+              case 'blue': return 'bg-gradient-to-br from-slate-950 via-[#0f1a2e] to-slate-900';
+              default: return 'bg-gradient-to-br from-slate-950 via-[#0f282e] to-slate-900'; // Default teal
+          }
+      }
+      return 'bg-[#0047FF]';
+  };
+  
+  const getAccentClass = () => {
+      switch(theme) {
+          case 'stealth': return 'bg-white/5';
+          case 'fluid': 
+                // We use a generic subtle background for standard elements in Fluid, 
+                // the specific accent color is mostly used inside Dashboard.
+                // But we can tint the glass slightly if needed.
+                return 'bg-white/5 backdrop-blur-md border border-white/10';
+          default: return 'bg-blue-base/20';
+      }
+  };
+
+  const bgClass = getBgClass();
+  const accentClass = getAccentClass();
 
   return (
     <div className={`w-full h-screen ${bgClass} text-white overflow-hidden relative font-sans transition-colors duration-700`}>
@@ -122,7 +153,17 @@ export const Layout: React.FC<LayoutProps> = ({
       <div className="fixed top-0 left-0 w-full z-40 p-4 md:p-8 flex justify-between items-start pointer-events-none">
         
         {/* Left Side: Back Button & System Status */}
-        <div className="pointer-events-auto flex items-center">
+        <div className="pointer-events-auto flex items-center gap-4">
+            {/* Fluid Mode Menu Button (Mobile) */}
+            {theme === 'fluid' && isHome && (
+                <button 
+                    onClick={onToggleSidebar}
+                    className="p-2 hover:bg-white/10 rounded-full transition-colors md:hidden pointer-events-auto bg-black/20 backdrop-blur-md border border-white/10"
+                >
+                    <Menu size={20} />
+                </button>
+            )}
+
             <AnimatePresence>
                 {!isHome && (
                     <motion.button 
@@ -139,48 +180,50 @@ export const Layout: React.FC<LayoutProps> = ({
                 )}
             </AnimatePresence>
           
-            {/* System Status / Telemetry */}
-            <motion.div layout className="text-left flex flex-col justify-center">
-                {greetingEnabled && (
-                    <div className="text-[9px] md:text-[10px] font-bold tracking-widest uppercase opacity-70 mb-0.5">
-                        Project Blue Beta
-                    </div>
-                )}
-                
-                <div className="text-[9px] md:text-xs font-bold opacity-50 tracking-widest uppercase mb-0.5 md:mb-1 leading-none">
-                    {callsign ? callsign : 'System Status'}
-                </div>
-                
-                <div className={`flex items-center gap-3 backdrop-blur-sm py-1 px-2 md:px-3 rounded-full md:bg-transparent md:p-0 ${accentClass} md:bg-transparent`}>
-                    {/* Connection */}
-                    <div className="flex items-center gap-1.5" title="Network Status">
-                        {network === 'OFFLINE' ? <Wifi size={10} className="text-red-400" /> : <Signal size={10} className="text-green-400" />}
-                        <span className="font-mono text-[10px] font-bold">{network}</span>
-                    </div>
-
-                    <div className="w-px h-3 bg-white/30"></div>
-
-                    {/* Battery */}
-                    {battery ? (
-                        <div className="flex items-center gap-1.5" title={`Battery: ${battery.level}%${battery.charging ? ' (Charging)' : ''}`}>
-                            <Zap size={10} className={battery.charging ? 'text-yellow-400' : battery.level < 20 ? 'text-red-400' : 'text-green-400'} />
-                            <span className="font-mono text-[10px] font-bold">{battery.level}%</span>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-1.5">
-                            <Zap size={10} className="text-white/50" />
-                            <span className="font-mono text-[10px] font-bold text-white/50">PWR</span>
+            {/* System Status / Telemetry - Hidden on Fluid home for minimalism (moved to sidebar) */}
+            {!(theme === 'fluid' && isHome) && (
+                <motion.div layout className="text-left flex flex-col justify-center">
+                    {greetingEnabled && (
+                        <div className="text-[9px] md:text-[10px] font-bold tracking-widest uppercase opacity-70 mb-0.5">
+                            Project Blue Beta
                         </div>
                     )}
-                </div>
-            </motion.div>
+                    
+                    <div className="text-[9px] md:text-xs font-bold opacity-50 tracking-widest uppercase mb-0.5 md:mb-1 leading-none">
+                        {callsign ? callsign : 'System Status'}
+                    </div>
+                    
+                    <div className={`flex items-center gap-3 backdrop-blur-sm py-1 px-2 md:px-3 rounded-full md:bg-transparent md:p-0 ${accentClass} md:bg-transparent`}>
+                        {/* Connection */}
+                        <div className="flex items-center gap-1.5" title="Network Status">
+                            {network === 'OFFLINE' ? <Wifi size={10} className="text-red-400" /> : <Signal size={10} className="text-green-400" />}
+                            <span className="font-mono text-[10px] font-bold">{network}</span>
+                        </div>
+
+                        <div className="w-px h-3 bg-white/30"></div>
+
+                        {/* Battery */}
+                        {battery ? (
+                            <div className="flex items-center gap-1.5" title={`Battery: ${battery.level}%${battery.charging ? ' (Charging)' : ''}`}>
+                                <Zap size={10} className={battery.charging ? 'text-yellow-400' : battery.level < 20 ? 'text-red-400' : 'text-green-400'} />
+                                <span className="font-mono text-[10px] font-bold">{battery.level}%</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-1.5">
+                                <Zap size={10} className="text-white/50" />
+                                <span className="font-mono text-[10px] font-bold text-white/50">PWR</span>
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
+            )}
         </div>
 
         {/* Right Side: Music & View Toggle */}
-        <div className="pointer-events-auto flex items-center gap-2 md:gap-4">
-             {/* View Toggle (Grid/List) - Appears first to push music left */}
+        <div className="pointer-events-auto flex items-center gap-2 md:gap-4 z-50">
+             {/* View Toggle (Grid/List) - HIDDEN IN FLUID MODE */}
             <AnimatePresence>
-                {showViewToggle && onToggleView && viewMode && (
+                {showViewToggle && onToggleView && viewMode && theme !== 'fluid' && (
                     <motion.button
                         initial={{ opacity: 0, width: 0, scale: 0.8 }}
                         animate={{ opacity: 1, width: 'auto', scale: 1 }}

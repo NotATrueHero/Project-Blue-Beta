@@ -2,12 +2,14 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert } from 'lucide-react';
-import { UserData, Theme, MusicPlaylist, LoopMode, WidgetPosition, LinkOpenMode } from '../types';
+import { Download, Save, Lock, RefreshCw, Eye, EyeOff, Key, ExternalLink, Trash2, AlertTriangle, User, Monitor, Clock, ShieldCheck, LayoutTemplate, MessageSquare, Shield, ShieldAlert, Info, Droplets, Palette } from 'lucide-react';
+import { UserData, Theme, MusicPlaylist, LoopMode, WidgetPosition, LinkOpenMode, FluidAccent } from '../types';
 
 interface ConfigProps {
     currentTheme: Theme;
     onThemeChange: (t: Theme) => void;
+    fluidAccent: FluidAccent;
+    onFluidAccentChange: (a: FluidAccent) => void;
     linkOpenMode: LinkOpenMode;
     onLinkOpenModeChange: (m: LinkOpenMode) => void;
     callsign: string;
@@ -34,6 +36,7 @@ interface ConfigProps {
 
 export const Config: React.FC<ConfigProps> = ({ 
     currentTheme, onThemeChange,
+    fluidAccent, onFluidAccentChange,
     linkOpenMode, onLinkOpenModeChange,
     callsign, onCallsignChange,
     crtEnabled, onCrtChange,
@@ -73,6 +76,7 @@ export const Config: React.FC<ConfigProps> = ({
     const fileFolders = JSON.parse(localStorage.getItem('blue_file_folders') || '[]'); 
     const pin = localStorage.getItem('blue_pin') || '1969';
     const theme = (localStorage.getItem('blue_theme') as Theme) || 'standard';
+    const accent = (localStorage.getItem('blue_fluid_accent') as FluidAccent) || 'teal';
     const widgetPos = (localStorage.getItem('blue_widget_pos') as WidgetPosition) || 'tool';
     const storedApiKey = localStorage.getItem('blue_api_key') || undefined;
     const bookmarkCategories = JSON.parse(localStorage.getItem('blue_uplink_categories') || '[]');
@@ -83,6 +87,7 @@ export const Config: React.FC<ConfigProps> = ({
         pin,
         authEnabled,
         theme,
+        fluidAccent: accent,
         linkOpenMode,
         callsign,
         crtEnabled,
@@ -156,11 +161,6 @@ export const Config: React.FC<ConfigProps> = ({
       setTimeout(() => setMessage(null), 3000);
   };
 
-  const toggleTheme = () => {
-      const newTheme = currentTheme === 'standard' ? 'stealth' : 'standard';
-      onThemeChange(newTheme);
-  };
-
   const executeFactoryReset = () => {
       localStorage.clear();
       window.location.reload();
@@ -219,19 +219,64 @@ export const Config: React.FC<ConfigProps> = ({
             </div>
             
             <div className="space-y-6">
-                {/* Theme Toggle */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <div className="font-bold uppercase tracking-wider mb-1 flex items-center gap-2">
-                             {currentTheme === 'standard' ? <Eye size={16} /> : <EyeOff size={16} />}
-                             <span>Color Mode</span>
-                        </div>
-                        <div className="text-xs opacity-60">High-Contrast Blue vs Low-Light Stealth</div>
+                {/* Theme Selector */}
+                <div>
+                    <div className="font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+                            {currentTheme === 'fluid' ? <Droplets size={16} /> : currentTheme === 'standard' ? <Eye size={16} /> : <EyeOff size={16} />}
+                            <span>Visual Theme</span>
                     </div>
-                    <button onClick={toggleTheme} className="border border-white px-4 py-1 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all">
-                        {currentTheme === 'standard' ? 'Switch Stealth' : 'Switch Standard'}
-                    </button>
+                    <div className="grid grid-cols-3 gap-2">
+                        <button 
+                            onClick={() => onThemeChange('standard')}
+                            className={`border border-white py-2 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all ${currentTheme === 'standard' ? 'bg-white text-black' : 'text-white'}`}
+                        >
+                            Standard
+                        </button>
+                        <button 
+                            onClick={() => onThemeChange('stealth')}
+                            className={`border border-white py-2 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all ${currentTheme === 'stealth' ? 'bg-white text-black' : 'text-white'}`}
+                        >
+                            Stealth
+                        </button>
+                        <button 
+                            onClick={() => onThemeChange('fluid')}
+                            className={`border border-white py-2 text-xs font-bold uppercase hover:bg-white hover:text-black transition-all ${currentTheme === 'fluid' ? 'bg-white text-black' : 'text-white'}`}
+                        >
+                            Fluid
+                        </button>
+                    </div>
+                    <div className="text-xs opacity-60 mt-2">
+                        {currentTheme === 'standard' && 'High-contrast tactical blue.'}
+                        {currentTheme === 'stealth' && 'Low-light tactical slate.'}
+                        {currentTheme === 'fluid' && 'Modern studio aesthetic. Teal/Cyan gradient.'}
+                    </div>
                 </div>
+
+                {/* FLUID ACCENT PICKER - Only visible if Fluid is active */}
+                {currentTheme === 'fluid' && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
+                        <div className="font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+                             <Palette size={16} /> Fluid Accent
+                        </div>
+                        <div className="flex gap-3">
+                            {(['teal', 'violet', 'rose', 'amber', 'blue'] as FluidAccent[]).map(color => (
+                                <button
+                                    key={color}
+                                    onClick={() => onFluidAccentChange(color)}
+                                    className={`w-8 h-8 rounded-full border-2 transition-transform ${fluidAccent === color ? 'border-white scale-110 shadow-[0_0_10px_white]' : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105'}`}
+                                    style={{ 
+                                        backgroundColor: color === 'teal' ? '#14b8a6' : 
+                                                         color === 'violet' ? '#8b5cf6' : 
+                                                         color === 'rose' ? '#f43f5e' : 
+                                                         color === 'amber' ? '#f59e0b' : 
+                                                         '#3b82f6' 
+                                    }}
+                                    title={color.toUpperCase()}
+                                />
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
 
                 {/* Link Open Mode */}
                 <div className="flex items-center justify-between">
@@ -278,8 +323,8 @@ export const Config: React.FC<ConfigProps> = ({
                     )}
                 </div>
 
-                {/* Widget Position */}
-                <div>
+                {/* Widget Position (Hidden in Fluid Mode generally, but kept for logic) */}
+                <div className={currentTheme === 'fluid' ? 'opacity-30 pointer-events-none' : ''}>
                      <div className="font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
                          <LayoutTemplate size={16} /> System Widget
                      </div>
@@ -442,6 +487,79 @@ export const Config: React.FC<ConfigProps> = ({
                     </a>
                 </div>
             </form>
+        </section>
+
+        {/* SYSTEM MANIFEST (ABOUT) */}
+        <section className="border-4 border-white p-8 md:col-span-2 bg-white/5">
+            <div className="flex items-center gap-4 mb-6">
+                <Info size={32} />
+                <h2 className="text-2xl font-bold uppercase tracking-widest">System Manifest</h2>
+            </div>
+
+            <div className="space-y-6 text-sm md:text-base font-light leading-relaxed opacity-90">
+                <p>
+                    <strong className="font-bold">PROJECT BLUE BETA</strong> is a sovereign, high-security digital workspace designed for tactical data management and operational focus. It functions as a self-contained operating environment running locally within the browser architecture.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+                    <div>
+                        <h3 className="text-xs font-bold uppercase tracking-widest opacity-60 mb-2 border-b border-white/20 pb-1">Core Directives</h3>
+                        <ul className="space-y-3 mt-3">
+                            <li className="flex gap-3">
+                                <span className="font-mono text-blue-300 font-bold">01 //</span>
+                                <span>
+                                    <strong className="uppercase text-xs font-bold tracking-wider">Local Sovereignty</strong><br/>
+                                    All user data—encrypted logs, files, and keys—resides exclusively in local storage. No external cloud telemetry exists.
+                                </span>
+                            </li>
+                            <li className="flex gap-3">
+                                <span className="font-mono text-blue-300 font-bold">02 //</span>
+                                <span>
+                                    <strong className="uppercase text-xs font-bold tracking-wider">Modular Architecture</strong><br/>
+                                    Tools operate as independent isolated modules, from the <span className="font-mono text-xs">Oracle</span> AI bridge to the <span className="font-mono text-xs">Cipher</span> cryptographic engine.
+                                </span>
+                            </li>
+                            <li className="flex gap-3">
+                                <span className="font-mono text-blue-300 font-bold">03 //</span>
+                                <span>
+                                    <strong className="uppercase text-xs font-bold tracking-wider">Tactical UI/UX</strong><br/>
+                                    High-contrast, distraction-free interface designed for rapid information processing and cognitive clarity.
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                         <h3 className="text-xs font-bold uppercase tracking-widest opacity-60 mb-2 border-b border-white/20 pb-1">Technical Specifications</h3>
+                         <div className="font-mono text-xs space-y-2 mt-3 opacity-80">
+                            <div className="flex justify-between">
+                                <span>KERNEL</span>
+                                <span>React v18.3 / Vite</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>AI BRIDGE</span>
+                                <span>Gemini 1.5 Flash / Pro</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>STORAGE</span>
+                                <span>IndexedDB / LocalStorage</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>ENCRYPTION</span>
+                                <span>AES-256 (Simulated) / Base64</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>BUILD</span>
+                                <span>Stable 2.7.4 (Cobalt)</span>
+                            </div>
+                         </div>
+
+                         <div className="mt-6 p-4 border border-white/20 bg-black/20 text-xs italic opacity-60">
+                             "The system is designed to disappear, leaving only the operator and the objective."
+                         </div>
+                    </div>
+                </div>
+            </div>
         </section>
 
         {/* EXPORT */}

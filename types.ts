@@ -69,7 +69,8 @@ export interface FileItem {
   date: string;
 }
 
-export type Theme = 'standard' | 'stealth';
+export type Theme = 'standard' | 'stealth' | 'fluid';
+export type FluidAccent = 'teal' | 'violet' | 'rose' | 'amber' | 'blue';
 export type LinkOpenMode = 'new_tab' | 'current_tab';
 
 export interface Track {
@@ -96,6 +97,7 @@ export interface UserData {
   authEnabled?: boolean;
   callsign?: string; 
   theme: Theme;
+  fluidAccent?: FluidAccent;
   linkOpenMode?: LinkOpenMode;
   crtEnabled?: boolean; 
   autoLockSeconds?: number;
