@@ -80,6 +80,7 @@ export const Config: React.FC<ConfigProps> = ({
     const taskLists = JSON.parse(localStorage.getItem('blue_task_lists') || '[]');
     const files = JSON.parse(localStorage.getItem('blue_files') || '[]');
     const fileFolders = JSON.parse(localStorage.getItem('blue_file_folders') || '[]'); 
+    const readerDocuments = JSON.parse(localStorage.getItem('blue_reader_docs') || '[]');
     const pin = localStorage.getItem('blue_pin') || '1969';
     const theme = (localStorage.getItem('blue_theme') as Theme) || 'standard';
     const accent = (localStorage.getItem('blue_fluid_accent') as FluidAccent) || 'teal';
@@ -91,7 +92,7 @@ export const Config: React.FC<ConfigProps> = ({
     const nexusEndpoints = JSON.parse(localStorage.getItem('blue_nexus_endpoints') || '[]');
 
     const data: UserData = {
-        version: '2.7',
+        version: '2.8',
         pin,
         authEnabled,
         theme,
@@ -117,7 +118,8 @@ export const Config: React.FC<ConfigProps> = ({
         bookmarkCategories,
         quickLinks,
         files,
-        fileFolders
+        fileFolders,
+        readerDocuments
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -608,7 +610,7 @@ export const Config: React.FC<ConfigProps> = ({
                             </div>
                             <div className="flex justify-between">
                                 <span>BUILD</span>
-                                <span>Stable 2.7.5 (Cobalt)</span>
+                                <span>Stable 2.8.0 (Cobalt)</span>
                             </div>
                          </div>
 

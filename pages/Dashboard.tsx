@@ -33,8 +33,9 @@ const tools: ToolItem[] = [
   { id: 'games', number: '14 / ENT', category: 'ENT', title: 'Games', description: 'Cognitive training simulations and probability engines.', path: '/games', imageText: 'SIMULATE', keywords: ['play', 'fun', 'chess', 'arcade'] },
   { id: 'config', number: '15 / SYS', category: 'SYS', title: 'Config', description: 'Adjust system parameters, diagnostics, and security protocols.', path: '/config', imageText: 'SETUP', keywords: ['settings', 'option', 'preferences', 'theme', 'admin'] },
   
-  // ROW 6 - Optional Nexus Module (Last so if hidden, numbering is continuous 1-15)
-  { id: 'nexus', number: '16 / NET', category: 'NET', title: 'Nexus', description: 'Central command hub for local server monitoring and homelab services.', path: '/nexus', imageText: 'SERVER HUB', keywords: ['server', 'home', 'lab', 'monitor', 'ping', 'portainer', 'proxmox'] },
+  // ROW 6
+  { id: 'reader', number: '16 / DATA', category: 'DATA', title: 'Reader', description: 'Document analysis interface for PDF and Markdown files.', path: '/reader', imageText: 'DOC VIEW', keywords: ['read', 'pdf', 'book', 'text', 'markdown', 'study'] },
+  { id: 'nexus', number: '17 / NET', category: 'NET', title: 'Nexus', description: 'Central command hub for local server monitoring and homelab services.', path: '/nexus', imageText: 'SERVER HUB', keywords: ['server', 'home', 'lab', 'monitor', 'ping', 'portainer', 'proxmox'] },
 ];
 
 // FLUID SECTOR MAPPING
@@ -43,6 +44,7 @@ const getFluidSector = (category: string): string => {
         case 'NET':
         case 'ENV': return 'NETWORK';
         case 'SYS': 
+        case 'DATA':
             return 'SYSTEM';
         case 'AI':
         case 'DEV':
@@ -600,7 +602,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
            <div className="flex justify-between items-center z-20 relative mb-8 md:mb-0">
                <div>
                    <h1 className="text-xl font-bold uppercase tracking-widest leading-none">Project Blue Beta</h1>
-                   <div className="text-xs font-bold opacity-50 uppercase tracking-widest mt-1">System Version 2.7</div>
+                   <div className="text-xs font-bold opacity-50 uppercase tracking-widest mt-1">System Version 2.8</div>
                </div>
                <div className="text-right pr-12 md:pr-20"> {/* Added Right Padding for Music Player safety */}
                    <div className="text-xl font-mono font-bold leading-none">{time.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}</div>
@@ -677,7 +679,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ viewMode, onHeroIntersect,
                                >
                                    <Home size={24} />
                                    <span className="text-[10px] font-bold uppercase tracking-widest">Home</span>
-                               </button>
+                                </button>
                                <h2 className="text-[6vw] font-bold uppercase tracking-tighter leading-none">NAVIGATION</h2>
                                <p className="text-xl opacity-60 uppercase tracking-[0.5em] mt-2">Select Sector Jump Target</p>
                            </div>

@@ -21,7 +21,8 @@ import { News } from './pages/News';
 import { IDE } from './pages/IDE';
 import { Calculator } from './pages/Calculator';
 import { Nexus } from './pages/Nexus';
-import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent, FluidBackground, ServerEndpoint } from './types';
+import { Reader } from './pages/Reader';
+import { Theme, MusicPlaylist, ViewMode, LoopMode, Track, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent, FluidBackground, ServerEndpoint, ReaderDocument } from './types';
 
 const App: React.FC = () => {
   const [bootStatus, setBootStatus] = useState<'booting' | 'locked' | 'unlocked'>('booting');
@@ -329,7 +330,8 @@ const App: React.FC = () => {
       loadedFluidAccent?: FluidAccent,
       loadedFluidBackground?: FluidBackground,
       loadedNexusEndpoints?: ServerEndpoint[],
-      loadedNexusEnabled?: boolean
+      loadedNexusEnabled?: boolean,
+      loadedReaderDocuments?: ReaderDocument[]
   ) => {
     setSessionPin(pin);
     if (loadedTheme) setTheme(loadedTheme);
@@ -344,10 +346,7 @@ const App: React.FC = () => {
     if (loadedGreetingEnabled !== undefined) setGreetingEnabled(loadedGreetingEnabled);
     if (loadedGreetingText) setGreetingText(loadedGreetingText);
     if (loadedNexusEnabled !== undefined) setNexusEnabled(loadedNexusEnabled);
-    
-    // Nexus endpoints are handled internally by Nexus page via localStorage, 
-    // but we load them here just to confirm data integrity if needed, 
-    // though Config/Nexus usually read directly. BootLoader seeds localStorage.
+    if (loadedReaderDocuments) localStorage.setItem('blue_reader_docs', JSON.stringify(loadedReaderDocuments));
     
     const shouldAuth = loadedAuthEnabled !== undefined ? loadedAuthEnabled : true;
     setAuthEnabled(shouldAuth);
@@ -436,6 +435,7 @@ const App: React.FC = () => {
   else if (pathname === '/uplink') content = <Bookmarks linkOpenMode={linkOpenMode} />;
   else if (pathname === '/files') content = <Files />;
   else if (pathname === '/nexus') content = <Nexus />;
+  else if (pathname === '/reader') content = <Reader />;
   else if (pathname === '/music') {
       content = <Music 
           playlists={playlists}

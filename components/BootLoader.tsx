@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Power, AlertTriangle } from 'lucide-react';
-import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent, FluidBackground, ServerEndpoint } from '../types';
+import { Theme, TaskList, MusicPlaylist, Track, BookmarkCategory, Bookmark, WidgetPosition, QuickLink, LinkOpenMode, FluidAccent, FluidBackground, ServerEndpoint, ReaderDocument } from '../types';
 
 interface BootLoaderProps {
   onLoadComplete: (
@@ -23,7 +23,8 @@ interface BootLoaderProps {
       fluidAccent?: FluidAccent,
       fluidBackground?: FluidBackground,
       nexusEndpoints?: ServerEndpoint[],
-      nexusEnabled?: boolean
+      nexusEnabled?: boolean,
+      readerDocuments?: ReaderDocument[]
   ) => void;
 }
 
@@ -83,6 +84,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         
         const nexusEndpoints: ServerEndpoint[] = data.nexusEndpoints || [];
         const nexusEnabled = data.nexusEnabled !== undefined ? data.nexusEnabled : false;
+        
+        const readerDocuments: ReaderDocument[] = data.readerDocuments || [];
 
         // Seed LocalStorage
         localStorage.setItem('blue_pin', data.pin);
@@ -103,6 +106,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
 
         localStorage.setItem('blue_files', JSON.stringify(data.files || []));
         localStorage.setItem('blue_file_folders', JSON.stringify(data.fileFolders || [])); 
+        
+        localStorage.setItem('blue_reader_docs', JSON.stringify(readerDocuments));
 
         localStorage.setItem('blue_theme', data.theme || 'standard');
         if (data.fluidAccent) localStorage.setItem('blue_fluid_accent', data.fluidAccent);
@@ -148,7 +153,8 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
                 data.fluidAccent,
                 data.fluidBackground,
                 nexusEndpoints,
-                nexusEnabled
+                nexusEnabled,
+                readerDocuments
             );
         }, 800);
 
@@ -175,7 +181,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         localStorage.setItem('blue_theme', 'standard');
     
         // Boot without auth
-        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined, true, 'new_tab', 'teal', 'deep', [], false);
+        onLoadComplete(defaultPin, false, 'standard', [], undefined, false, 0, 'tool', [], false, undefined, true, 'new_tab', 'teal', 'deep', [], false, []);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,7 +267,7 @@ export const BootLoader: React.FC<BootLoaderProps> = ({ onLoadComplete }) => {
         )}
 
         <div className="mt-12 text-center text-xs opacity-40 uppercase tracking-[0.2em]">
-            Project Blue Beta // v2.4.0
+            Project Blue Beta // v2.8.0
         </div>
 
       </motion.div>

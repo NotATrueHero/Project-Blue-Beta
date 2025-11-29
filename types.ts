@@ -75,6 +75,16 @@ export interface FileItem {
   date: string;
 }
 
+export interface ReaderDocument {
+    id: string;
+    title: string;
+    type: 'md' | 'pdf' | 'txt';
+    content: string;
+    addedAt: string;
+    progress: number;
+    size: number;
+}
+
 export type Theme = 'standard' | 'stealth' | 'fluid' | 'vanta';
 export type FluidAccent = 'teal' | 'violet' | 'rose' | 'amber' | 'blue';
 export type FluidBackground = 'deep' | 'vivid';
@@ -133,6 +143,8 @@ export interface UserData {
 
   files: FileItem[];
   fileFolders: FileFolder[]; 
+  
+  readerDocuments?: ReaderDocument[];
 }
 
 export enum ViewMode {
